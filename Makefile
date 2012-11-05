@@ -23,8 +23,9 @@ all: demo
 %.o:    %.c $(HEADERS)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -o $@ -c $<
 
-demo: sighandlerdemo.o
-	$(CC) sighandlerdemo.o $(CFLAGS) $(EXTRA_CFLAGS) -o $@
+demo: sighandlerdemo.o mprotectdemo.o
+	$(CC) sighandlerdemo.o $(CFLAGS) $(EXTRA_CFLAGS) -o sigdemo 
+	$(CC) mprotectdemo.o $(CFLAGS) $(EXTRA_CFLAGS) -o mpdemo 
 
 clean:
 	$(RM) demo *.o 	
