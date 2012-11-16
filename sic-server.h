@@ -14,7 +14,25 @@ typedef struct {
 /** Called by network code when the server gets new client. */
 void client_arrived_at_barrier(client_id client, barrier_id barrier);
 
-/** Calls network code broadcasting to all clients. */
-void release_clients(barrier_id barrier);
 
+/** 
+ * ----------------------------------------
+ *             Private methods 
+ * ----------------------------------------
+ */
+
+/** 
+ * Calls network code broadcasting to all clients, and marks the barrier as 
+ * cleared. 
+ */
+
+void release_clients(Barrier *barrier);
+
+void broadcast_barrier_release(barrier_id id);
+
+void assert_empty_barrier(Barrier b);
+
+void assert_full_barrier(Barrier b);
+
+void clear_barrier(Barrier *b);
 #endif

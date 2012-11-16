@@ -8,7 +8,7 @@ SERVER_SOURCES = sic-server.c
 
 # What we're building
 
-PRODUCT = test-barriers
+PRODUCT = test-barriers network server 
 OBJECTS = $(patsubst %.c,%.o,$(SOURCES))
 NETWORK_OBJECTS = $(patsubst %.c,%.o,$(NETWORK_SOURCES))
 SERVER_OBJECTS = $(patsubst %.c,%.o,$(SERVER_SOURCES))
@@ -26,9 +26,7 @@ else
 CFLAGS += -O3 -DNDEBUG -gdwarf-3
 endif
 
-all: $(PRODUCT)
-
-sic: test-barriers.o
+all: $(PRODUCT) 
 
 network: $(NETWORK_OBJECTS)
 	$(CC) $(NETWORK_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
@@ -37,7 +35,7 @@ server: $(SERVER_OBJECTS)
 	$(CC) $(SERVER_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
 # How to link the product
-$(PRODUCT): $(OBJECTS)
+test-barriers: $(OBJECTS)
 	$(CC) $(OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
 %.o:    %.c $(HEADERS)
