@@ -6,6 +6,7 @@
 
 typedef uint32_t client_id;
 typedef uint32_t barrier_id;
+typedef uint32_t lock_id;
 
 void sic_panic(char * msg);
 
