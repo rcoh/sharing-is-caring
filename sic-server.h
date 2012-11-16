@@ -1,4 +1,4 @@
-#include "./sic-types.h"
+#include "./sic-util.h"
 
 /** Called by network code when the server gets new client. */
 void client_arrived_at_barrier(client_id client, barrier_id barrier);

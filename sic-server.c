@@ -1,4 +1,4 @@
-#include "./sic-types.h"
+#include "./sic-util.h"
 
 int main(int argc, char *argv[], char *evnp[]) {
   return 0;

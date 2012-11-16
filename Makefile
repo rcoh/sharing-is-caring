@@ -1,6 +1,6 @@
 # The sources we're building
 SOURCES = sic.c test-barriers.c sic-internals.c
-HEADERS = sic.h sic-internals.h network.h sic-types.h sic-server.h
+HEADERS = sic.h sic-internals.h network.h sic-util.h sic-server.h
 
 NETWORK_SOURCES = network.c
 
