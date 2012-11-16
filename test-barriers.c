@@ -3,6 +3,7 @@
 #include "./sic.h"
 
 int main() {
+  sic_init();
   printf("At beginning\n");
   sic_barrier(0);
   printf("Passed through barrier 0. Sleeping for a bit.\n");

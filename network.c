@@ -38,3 +38,6 @@ int runserver(int argc, char * argv[]) {
   return 0;
 }
 
+void connect_to_server() {
+  // TODO: jlynch
+}

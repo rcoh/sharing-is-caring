@@ -9,3 +9,5 @@ void bind_to_port(int socket, int port);
 int open_listener_socket();
 int say(int socket, char *s);
 
+/** Connect to the master server for the cluster. Block until complete. */
+void connect_to_server();
