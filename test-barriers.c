@@ -1,6 +1,5 @@
 #include <unistd.h>
 #include <stdio.h>
-
 #include "./sic.h"
 
 int main() {

@@ -15,7 +15,7 @@ SERVER_OBJECTS = $(patsubst %.c,%.o,$(SERVER_SOURCES))
 
 # What we're building with
 CC = gcc 
-CFLAGS = -Wall 
+CFLAGS = -Wall -std=c99
 LDFLAGS = 
 
 ifeq ($(DEBUG),1)
