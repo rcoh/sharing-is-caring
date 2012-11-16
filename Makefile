@@ -3,6 +3,8 @@ SOURCES = $(wildcard *.c)
 HEADERS = $(wildcard *.h)
 
 # What we're building
+
+PRODUCT = test-barriers
 OBJECTS = $(patsubst %.c,%.o,$(SOURCES))
 
 # What we're building with
@@ -18,14 +20,23 @@ else
 CFLAGS += -O3 -DNDEBUG -gdwarf-3
 endif
 
-all: demo
+all: demo $(PRODUCT)
+
+
+sic: test-barriers.o
+
+# How to link the product
+$(PRODUCT): $(OBJECTS)
+	$(CC) $(OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
 %.o:    %.c $(HEADERS)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -o $@ -c $<
 
-demo: sighandlerdemo.o mprotectdemo.o
-	$(CC) sighandlerdemo.o $(CFLAGS) $(EXTRA_CFLAGS) -o sigdemo 
-	$(CC) mprotectdemo.o $(CFLAGS) $(EXTRA_CFLAGS) -o mpdemo 
+
+#demo: sighandlerdemo.o mprotectdemo.o exec-mpdemo.o
+#	$(CC) demos/sighandlerdemo.o $(CFLAGS) $(EXTRA_CFLAGS) -o sigdemo 
+#	$(CC) demos/mprotectdemo.o $(CFLAGS) $(EXTRA_CFLAGS) -o mpdemo 
+#	$(CC) demos/exec-mpdemo.o $(CFLAGS)  $(EXTRA_CFLAGS) -o execdemo
 
 clean:
-	$(RM) demo *.o 	
+	$(RM) sigdemo mpdemo execdemo *.o 	
