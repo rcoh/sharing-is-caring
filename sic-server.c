@@ -1,10 +1,9 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include "./sic-util.h"
-#include "./sic-server.h"
+#include "sic-util.h"
+#include "sic-server.h"
 #include "network.h"
-
 
 static Barrier barriers[MAX_BARRIERS];
 static pthread_mutex_t server_lock;
@@ -43,7 +42,8 @@ void release_clients(Barrier *barrier) {
 }
 
 void broadcast_barrier_release(barrier_id id) {
-  // TODO: jlynch
+  // send message "barrier: id"
+  printf("WTFBBQ\n");
 }
 
 

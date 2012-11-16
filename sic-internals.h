@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "sic-util.h"
+#include "network.h"
 
 /** Client arrived at barrier. Blocks until barrier is clear. */
 void arrived_at_barrier(barrier_id barrier);
