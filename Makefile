@@ -1,11 +1,14 @@
 # The sources we're building
-SOURCES = $(wildcard *.c)
-HEADERS = $(wildcard *.h)
+SOURCES = sic.c test-barriers.c
+HEADERS = sic.h sic-internals.h network.h
+
+NETWORK_SOURCES = network.c
 
 # What we're building
 
 PRODUCT = test-barriers
 OBJECTS = $(patsubst %.c,%.o,$(SOURCES))
+NETWORK_OBJECTS = $(patsubst %.c,%.o,$(NETWORK_SOURCES))
 
 # What we're building with
 CC = gcc 
@@ -20,10 +23,12 @@ else
 CFLAGS += -O3 -DNDEBUG -gdwarf-3
 endif
 
-all: demo $(PRODUCT)
-
+all: $(PRODUCT)
 
 sic: test-barriers.o
+
+network: $(NETWORK_OBJECTS)
+	$(CC) $(NETWORK_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
 # How to link the product
 $(PRODUCT): $(OBJECTS)
