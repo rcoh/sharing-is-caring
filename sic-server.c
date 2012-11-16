@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include "./sic-util.h"
 #include "./sic-server.h"
+#include "network.h"
 
 
 static Barrier barriers[MAX_BARRIERS];

@@ -2,13 +2,13 @@
 SOURCES = sic.c test-barriers.c sic-internals.c sic-util.c
 HEADERS = sic.h sic-internals.h network.h sic-util.h sic-server.h
 
-NETWORK_SOURCES = network.c sic-util.c
+NETWORK_SOURCES = network.c sic-util.c network-tester.c
 
 SERVER_SOURCES = sic-server.c
 
 # What we're building
 
-PRODUCT = test-barriers network server 
+PRODUCT = test-barriers network-tester server 
 OBJECTS = $(patsubst %.c,%.o,$(SOURCES))
 NETWORK_OBJECTS = $(patsubst %.c,%.o,$(NETWORK_SOURCES))
 SERVER_OBJECTS = $(patsubst %.c,%.o,$(SERVER_SOURCES))
@@ -28,7 +28,7 @@ endif
 
 all: $(PRODUCT) 
 
-network: $(NETWORK_OBJECTS)
+network-tester: $(NETWORK_OBJECTS)
 	$(CC) $(NETWORK_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
 server: $(SERVER_OBJECTS)

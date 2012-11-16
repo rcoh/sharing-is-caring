@@ -2,7 +2,6 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-int main(int argc, char * argv[]);
 int runserver(int argc, char * argv[]);
 
 void bind_to_port(int socket, int port);

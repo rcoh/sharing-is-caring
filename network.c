@@ -1,10 +1,6 @@
 #include "network.h"
 #include "sic-util.h"
 
-int main(int argc, char * argv[]) {
-  runserver(argc, argv);
-}
-
 void bind_to_port(int socket, int port) {
   struct sockaddr_in name;
   name.sin_family = PF_INET;
