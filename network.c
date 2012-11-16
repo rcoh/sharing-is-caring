@@ -19,7 +19,7 @@ void bind_to_port(int socket, int port) {
 }
 
 int runserver(int argc, char * argv[]) {
-  sic_log("Starting server ...\n");
+  sic_log("Starting server ...");
   char *replies[] = {
     "Hello World\n"
   };

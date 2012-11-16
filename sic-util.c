@@ -28,7 +28,7 @@ void sic_log_fn(const char* fn, const char* msg) {
   if (p)
     *p = '\0';
   // Log it to the file
-  fprintf(file, "[%s]: %s", buf, msg);
+  fprintf(file, "[%s]: %s\n", buf, msg);
   fclose(file);
 }
 
