@@ -1,7 +1,7 @@
 #ifndef SIC_SERVER
 #define SIC_SERVER
 #include <stdbool.h>
-#include "./sic-util.h"
+#include "sic-util.h"
 
 #define MAX_BARRIERS 1000
 #define NUM_CLIENTS 2

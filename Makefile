@@ -34,7 +34,6 @@ network: $(NETWORK_OBJECTS)
 server: $(SERVER_OBJECTS)
 	$(CC) $(SERVER_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
-# How to link the product
 test-barriers: $(OBJECTS)
 	$(CC) $(OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
