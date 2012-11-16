@@ -11,6 +11,7 @@ static pthread_mutex_t server_lock;
 
 int main(int argc, char *argv[], char *evnp[]) {
   pthread_mutex_init(&server_lock, NULL);
+  runserver(argc, argv);
   return 0;
 }
 
