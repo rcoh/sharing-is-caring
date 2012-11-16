@@ -1,14 +1,17 @@
 # The sources we're building
-SOURCES = sic.c test-barriers.c
-HEADERS = sic.h sic-internals.h network.h
+SOURCES = sic.c test-barriers.c sic-internals.c
+HEADERS = sic.h sic-internals.h network.h sic-types.h sic-server.h
 
 NETWORK_SOURCES = network.c
+
+SERVER_SOURCES = sic-server.c
 
 # What we're building
 
 PRODUCT = test-barriers
 OBJECTS = $(patsubst %.c,%.o,$(SOURCES))
 NETWORK_OBJECTS = $(patsubst %.c,%.o,$(NETWORK_SOURCES))
+SERVER_OBJECTS = $(patsubst %.c,%.o,$(SERVER_SOURCES))
 
 # What we're building with
 CC = gcc 
@@ -29,6 +32,9 @@ sic: test-barriers.o
 
 network: $(NETWORK_OBJECTS)
 	$(CC) $(NETWORK_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
+
+server: $(SERVER_OBJECTS)
+	$(CC) $(SERVER_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
 # How to link the product
 $(PRODUCT): $(OBJECTS)
