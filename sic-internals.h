@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "./sic-util.h"
+#include "sic-util.h"
 /** Begin Client Code */
 /** Client arrived at barrier. Blocks until barrier is clear. */
 void arrived_at_barrier(barrier_id barrier);
