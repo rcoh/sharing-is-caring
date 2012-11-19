@@ -3,6 +3,12 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <sched.h>
+#include <signal.h>
+#include <string.h>
+
+
+#include <sys/mman.h>
+
 #include "sic-util.h"
 #include "network.h"
 
@@ -22,8 +28,14 @@ int sic_id();
 void send_packet_to_server(char *msg, char *recv);
 
 
-/** Clone a page within the shared virtual address space into the local address
- * space and memcpy the old page contents there. Remove write protections on the
- * old page. 
+void mark_read_only(void *start, size_t length); 
+
+/** 
+ * Clone a page within the shared virtual address space into the local address
+ * space and memcpy the old page contents there. 
+ *
+ * Remove write protections on the old page. 
+ *
+ * Return the address of the twin.
  */
 void *twin_page(void * va);

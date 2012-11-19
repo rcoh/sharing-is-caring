@@ -4,6 +4,8 @@ client_id sic_client_id = -1;
 
 bool blocked;
 
+/** Synchronization **/
+
 void arrived_at_barrier(barrier_id id) {
   blocked = true;
   
@@ -26,6 +28,8 @@ void released_from_barrier(barrier_id id) {
   sic_logf("Client released from barrier %d", id);
 }
 
+/** Networking **/
+
 void wait_for_server() {
   sic_client_id = 0;
 }
@@ -47,4 +51,41 @@ void *runclient(void * args) {
     send(connect_d, msg, strlen(msg), 0);
     close(connect_d);
   }
+}
+
+/** Memory Management **/
+
+static void handler(int sig, siginfo_t *si, void *unused) {
+  sic_logf("Got SIGSEGV at address: 0x%lx",(long) si->si_addr);
+  sic_logf("Marking it writeable");
+  void * failing_page = ROUNDDOWN(si->si_addr, PGSIZE);
+  if(mprotect(failing_page, PGSIZE, PROT_READ | PROT_WRITE) < 0) {
+    printf("mprotect failed.");
+  }
+  sic_logf("Cloning page");
+  twin_page(failing_page);
+  
+  // TODO: register twinned page
+}
+
+void initialize_memory_manager() {
+  // Setup sigaction handler
+  struct sigaction sa;
+
+  sa.sa_flags = SA_SIGINFO;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_sigaction = handler;
+  if (sigaction(SIGSEGV, &sa, NULL) == -1)
+    printf("Failure creating handler\n");
+
+}
+
+void mark_read_only(void *start, size_t length) {
+  mprotect(start, length, PROT_READ);
+}
+
+void *twin_page(void *va) {
+  void *new_page = memalign(PGSIZE, PGSIZE);
+  memcpy(new_page, va, PGSIZE);
+  return new_page;
 }
