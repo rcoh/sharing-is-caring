@@ -20,7 +20,7 @@ TEST_OBJECTS =  $(patsubst %.c,%.o,$(TEST_SOURCES))
 # What we're building with
 CC = gcc 
 CFLAGS = -Wall -std=c99
-LDFLAGS = 
+LDFLAGS = -lpthread
 
 ifeq ($(DEBUG),1)
 # We want debug mode.

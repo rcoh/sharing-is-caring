@@ -63,6 +63,7 @@ int runserver(int argc, char * argv[]) {
   bind_to_port(listener_d, 30000);
   listen(listener_d, 10);
   puts("Waiting for connection . . .\n");
+  // Poll for
   while (1) {
     struct sockaddr_storage client_addr;
     unsigned int address_size = sizeof(client_addr);

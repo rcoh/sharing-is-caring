@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <pthread.h>
 #include "sic-util.h"
 #include "network.h"
 
@@ -11,3 +12,7 @@ void released_from_barrier(barrier_id barrier);
 /** Wait for server to come up, and conect to it. Block until that is done. */
 void wait_for_server();
 
+/** Run the client main loop waiting for network traffic from the server */
+void * runclient(void * args);
+
+int sic_id();

@@ -4,9 +4,13 @@
 #include <string.h>
 #include <errno.h>
 
-typedef uint32_t client_id;
+typedef int client_id;
 typedef uint32_t barrier_id;
 typedef uint32_t lock_id;
+
+#define SERVER "127.0.0.1"
+#define SERVER_PORT 1337
+#define CLIENT_BASE_PORT 1338
 
 void sic_panic(char * msg);
 
