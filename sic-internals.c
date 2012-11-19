@@ -2,17 +2,28 @@
 
 client_id sic_client_id = -1;
 
+bool blocked;
+
 void arrived_at_barrier(barrier_id id) {
+  blocked = true;
+  
   printf("Hitting barrier: %d\n", id);
   char resp[1024];
   printf("Sending packet.\n");
   send_packet("127.0.0.1", 30000, "hello there", resp);
   printf("%s", resp);
   // TODO: jlynch send message to server
+  //
+
+  while(blocked) {
+    sched_yield();
+  }
 }
 
 void released_from_barrier(barrier_id id) {
-  // TODO: jlynch call from client network code
+  assert(!blocked);
+  blocked = false;
+  sic_logf("Client released from barrier %d", id);
 }
 
 void wait_for_server() {

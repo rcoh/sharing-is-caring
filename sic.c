@@ -12,3 +12,20 @@ void sic_init() {
   // Fire off a thread that listens for messages from the server
   pthread_create(&network_loop, NULL, runclient, NULL);
 }
+
+void sic_lock(lock_id id) {
+  // Send packet to server
+  char result[255];
+  // TODO: real protocol message
+  // TODO: loop while result indicates we don't have the lock
+  send_packet(SERVER_IP, SERVER_PORT, "locked", result);
+}
+
+void *sic_malloc(size_t size) {
+  // Allocate a multiple of PGSIZE bytes, aligned at a page
+  void *res = memalign(PGSIZE, ROUNDUP(size, PGSIZE));
+  mprotect(res, size, PROT_READ);
+  return res;
+}
+
+

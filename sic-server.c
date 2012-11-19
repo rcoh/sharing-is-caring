@@ -1,13 +1,9 @@
-#include <assert.h>
-#include <stdbool.h>
-#include <pthread.h>
-#include "sic-util.h"
 #include "sic-server.h"
-#include "network.h"
 
-static Barrier barriers[MAX_BARRIERS];
+static Barrier barriers[NUM_BARRIERS];
 static Lock    locks[NUM_LOCKS];
 static pthread_mutex_t server_lock;
+static int num_clients_connected;
 
 int main(int argc, char *argv[], char *evnp[]) {
   pthread_mutex_init(&server_lock, NULL);
@@ -15,7 +11,27 @@ int main(int argc, char *argv[], char *evnp[]) {
   return 0;
 }
 
-void client_arrived_at_barrier(client_id client, barrier_id barrier) {
+/** 
+ * Called by the network loop when a client sends a "new client" request.
+ * Returns the id of the new client. The server should reply with the clients
+ * id, and note the (ip, port) -> client id mapping.
+ */
+client_id new_client() {
+  pthread_mutex_lock(&server_lock);
+  client_id new_client_id = num_clients_connected++;
+  pthread_mutex_unlock(&server_lock);
+  return new_client_id;
+}
+
+/** 
+ * Returns 0 if we recognize the client arriving at the barrier. Error codes:
+ * -E_INVALID_BARRIER if the barrier id is bogus.
+ */
+int client_arrived_at_barrier(client_id client, barrier_id barrier) {
+  if (barrier >= NUM_BARRIERS) {
+    return -E_INVALID_BARRIER;
+  }
+
   pthread_mutex_lock(&server_lock);
   // If it's the first client to the barrier
   Barrier *b = &barriers[barrier];
@@ -34,12 +50,14 @@ void client_arrived_at_barrier(client_id client, barrier_id barrier) {
     release_clients(b);
   }
   pthread_mutex_unlock(&server_lock);
+  return 0;
 }
 
 /** 
  * Called by main network loop when a lock request comes in. Either replies
  * indicating that the lock was acquired, or replies indicating that it was not
  * acquired and that the client should retry.
+ *
  */
 void client_requests_lock(client_id client, lock_id lock) {
   pthread_mutex_lock(&server_lock);
@@ -90,6 +108,7 @@ void signal_lock_not_acquired(client_id client, lock_id lock) {
 void signal_successful_release(client_id client, lock_id lock) {
   // TODO: jlynch
 }
+
 void signal_invalid_release(client_id client, lock_id lock) {
   // TODO: jlynch
 }

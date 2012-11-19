@@ -10,6 +10,13 @@ void sic_log(const char* msg) {
   sic_log_fn(NULL, msg);
 }
 
+void sic_logf(const char *fmt, ...) {
+  va_list args;
+  va_start(args,fmt);
+  vfprintf(stderr, fmt, args);
+  va_end(args);
+}
+
 void sic_log_fn(const char* fn, const char* msg) {
   FILE *file;
   if (fn != NULL)

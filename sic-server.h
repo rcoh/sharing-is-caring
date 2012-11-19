@@ -1,9 +1,13 @@
-#ifndef SIC_SERVER
-#define SIC_SERVER
+#ifndef SIC_SERVER_H
+#define SIC_SERVER_H
+#include <assert.h>
+#include <pthread.h>
 #include <stdbool.h>
-#include "sic-util.h"
 
-#define MAX_BARRIERS 1000
+#include "sic-util.h"
+#include "network.h"
+
+#define NUM_BARRIERS 1000
 #define NUM_LOCKS    1000
 #define NUM_CLIENTS  2
 #define NO_OWNER     NUM_CLIENTS
@@ -21,7 +25,7 @@ typedef struct {
 } Lock;
 
 /** Called by network code when the server gets new client. */
-void client_arrived_at_barrier(client_id client, barrier_id barrier);
+int client_arrived_at_barrier(client_id client, barrier_id barrier);
 
 /** Called by network code when client requests a lock. */
 void client_requests_lock(client_id client, lock_id lock);

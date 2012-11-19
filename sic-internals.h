@@ -1,5 +1,8 @@
 #include <stdint.h>
 #include <pthread.h>
+#include <stdbool.h>
+#include <assert.h>
+#include <sched.h>
 #include "sic-util.h"
 #include "network.h"
 
@@ -16,3 +19,11 @@ void wait_for_server();
 void * runclient(void * args);
 
 int sic_id();
+void send_packet_to_server(char *msg, char *recv);
+
+
+/** Clone a page within the shared virtual address space into the local address
+ * space and memcpy the old page contents there. Remove write protections on the
+ * old page. 
+ */
+void *twin_page(void * va);

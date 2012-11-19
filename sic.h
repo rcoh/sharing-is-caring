@@ -1,5 +1,8 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/mman.h>
+#include <malloc.h>
+#include "sic-util.h"
 
 /*
  * Start the sic process. Wait for everyone to get here.
@@ -27,3 +30,7 @@ void sic_free(void *ptr);
 void share_ptr(void *ptr, uintptr_t value);
 
 void sic_barrier(uint32_t id); 
+
+void sic_lock(lock_id id);
+
+void sic_unlock(lock_id id);
