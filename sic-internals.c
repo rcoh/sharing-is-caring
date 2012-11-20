@@ -4,6 +4,8 @@ client_id sic_client_id = -1;
 
 bool blocked;
 
+static PageInfo *invalid_pages;
+
 /** Synchronization **/
 
 void arrived_at_barrier(barrier_id id) {
@@ -63,9 +65,7 @@ static void handler(int sig, siginfo_t *si, void *unused) {
     printf("mprotect failed.");
   }
   sic_logf("Cloning page");
-  twin_page(failing_page);
-  
-  // TODO: register twinned page
+  register_page(twin_page(failing_page), failing_page);
 }
 
 void initialize_memory_manager() {
@@ -88,4 +88,40 @@ void *twin_page(void *va) {
   void *new_page = memalign(PGSIZE, PGSIZE);
   memcpy(new_page, va, PGSIZE);
   return new_page;
+}
+
+/** Appends to the head of the list of invalid pages */
+void register_page(void *oldva, void *newva) {
+  if (invalid_pages == NULL) {
+    invalid_pages = (PageInfo *)malloc(sizeof(PageInfo));
+  } else { 
+    PageInfo *new = (PageInfo *)malloc(sizeof(PageInfo));
+    new->next = invalid_pages;
+    invalid_pages = new;
+  }
+  invalid_pages->old_page_addr = oldva;
+  invalid_pages->new_page_addr = newva;
+  
+  invalid_pages->next = NULL;
+  sic_logf("Registered %p cloned at %p", newva, oldva);
+}
+
+/** Logs the current state off memory affairs **/
+void memstat() {
+  sic_logf(" ----- Computing memstat ---- ");
+  PageInfo *w = invalid_pages;
+  int num_pages = 0;
+  while(w) {
+    num_pages++; 
+    w = w->next;
+  }
+  sic_logf("Num cloned pages: %d", num_pages);
+  w = invalid_pages;
+  while(w) {
+    sic_logf("about to make diff");
+    RegionDiff diff = memdiff(w->old_page_addr, w->new_page_addr, PGSIZE);
+    sic_logf("about to print");
+    print_diff(diff);
+    w = w->next;
+  }
 }

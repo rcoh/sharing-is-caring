@@ -5,12 +5,20 @@
 #include <sched.h>
 #include <signal.h>
 #include <string.h>
+#include <malloc.h>
 
 
 #include <sys/mman.h>
 
 #include "sic-util.h"
 #include "network.h"
+
+typedef struct __PageInfo {
+  void * old_page_addr;
+  void * new_page_addr;
+  struct __PageInfo *next;
+} PageInfo;
+
 
 /** Client arrived at barrier. Blocks until barrier is clear. */
 void arrived_at_barrier(barrier_id barrier);
@@ -27,8 +35,9 @@ void * runclient(void * args);
 int sic_id();
 void send_packet_to_server(char *msg, char *recv);
 
-
 void mark_read_only(void *start, size_t length); 
+
+void initialize_memory_manager();
 
 /** 
  * Clone a page within the shared virtual address space into the local address
@@ -39,3 +48,12 @@ void mark_read_only(void *start, size_t length);
  * Return the address of the twin.
  */
 void *twin_page(void * va);
+
+/** 
+ * Register a just-twinned page in the list of currently invalid pages.
+ */
+
+void register_page(void *old_va, void *new_va);
+
+/** Logs the current state of affairs **/
+void memstat();

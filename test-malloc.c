@@ -5,8 +5,15 @@
 int main() {
   sic_init();
   char *foo = sic_malloc(128);
-  foo[0] = 'a';
+  int i;
+  for (i = 0; i < 128; i++) {
+    if (i % 8 == 0) {
+      foo[i] = 'a';
+    }
+  }
   printf("foo[0]: %c\n", foo[0]);
+
+  memstat();
 
   return 0;
 }

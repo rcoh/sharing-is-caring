@@ -33,3 +33,5 @@ void sic_barrier(uint32_t id);
 void sic_lock(lock_id id);
 
 void sic_unlock(lock_id id);
+
+void memstat();
