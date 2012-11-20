@@ -46,7 +46,7 @@ int encode_message(char* msg, int id, int code, int value) {
   assert(id < 100);
   assert(code < 100);
   assert(value < 100);
-  return snprintf(msg, 10, "%02d %02d %02d\n", id, code, value);
+  return snprintf(msg, 10, "%02d %02d %02d", id, code, value);
 }
 
 int decode_message(char* msg, int* id, int* code, int* value) {
@@ -97,6 +97,7 @@ void apply_diff(void *page_addr, RegionDiff diff) {
 }
 
 RegionDiff merge_diffs(int num_diffs, RegionDiff *r) {
+  // TODO: probably shouldn't hardcode PGSIZE here
   void *new_page = malloc(PGSIZE);
   memset(new_page, 0, PGSIZE);
   int i;
@@ -104,7 +105,11 @@ RegionDiff merge_diffs(int num_diffs, RegionDiff *r) {
     apply_diff(new_page, r[i]);
   }
 
-  return r[0];
+  // TODO: this is inefficient...
+  void *zero_page = malloc(PGSIZE);
+  memset(new_page, 0, PGSIZE);
+
+  return memdiff(zero_page, new_page, PGSIZE);
 }
 
 void print_diff(RegionDiff diff) {

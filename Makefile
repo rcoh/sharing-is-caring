@@ -1,7 +1,7 @@
 # The sources we're building
 # Sources without mains
-GENERIC_SOURCES = sic.c sic-internals.c sic-util.c network.c
-HEADERS = sic.h sic-internals.h network.h sic-util.h sic-server.h
+GENERIC_SOURCES = sic.c sic-internals.c sic-util.c network.c sic-message.pb-c.c
+HEADERS = sic.h sic-internals.h network.h sic-util.h sic-server.h sic-message.pb-c.h google/protobuf-c/protobuf-c.h google/protobuf-c/protobuf-c-rpc.h google/protobuf-c/protobuf-c-dispatch.h google/protobuf-c/protobuf-c-private.h
 
 TESTBARRIER_SOURCES = test-barriers.c
 
@@ -23,7 +23,7 @@ TESTMALLOC_OBJECTS =  $(patsubst %.c,%.o,$(TESTMALLOC_SOURCES))
 # What we're building with
 CC = gcc 
 CFLAGS = -Wall
-LDFLAGS = -lpthread
+LDFLAGS = -lpthread -lprotobuf-c
 
 ifeq ($(DEBUG),1)
 # We want debug mode.

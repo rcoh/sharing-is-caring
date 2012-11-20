@@ -43,7 +43,7 @@ int recv_data(int socket, char* rec, int len) {
   while (bytes_recv) {
     //sic_logf("received: %d\n", bytes_recv);
     len -= bytes_recv;
-    if (rec[bytes_recv-1] == '\n') {
+    if (rec[bytes_recv-1] == '\0') {
       rec[bytes_recv-1] = '\0';
       return 0;
     }
@@ -51,15 +51,26 @@ int recv_data(int socket, char* rec, int len) {
       return bytes_recv;
     if (len == 0)
       return 0;
-    bytes_recv = recv(socket, rec, len, 0);
+    bytes_recv = recv(socket, rec + bytes_recv, len, 0);
   }
   return 0;
+}
+
+int send_message(const char* ip, int port, const void *msg, int len, char *rec) {
+  int socket = open_socket(ip, port);
+  sic_logf("Trying to send [%s] to [%s] on port [%d]\n", msg, ip, port);
+  int result = send(socket, msg, len, 0);
+  if (result < 0)
+    fprintf(stderr, "Could not send packet, well fuck\n");
+  result = recv_data(socket, rec, 255);
+  close(socket);
+  return result;
 }
 
 int send_packet(const char* ip, int port, const char* msg, char* rec) {
   int socket = open_socket(ip, port);
   sic_logf("Trying to send [%s] to [%s] on port [%d]\n", msg, ip, port);
-  int result = send(socket, msg, strlen(msg), 0);
+  int result = send(socket, msg, strlen(msg) + 1, 0);
   if (result < 0)
     fprintf(stderr, "Could not send packet, well fuck\n");
   result = recv_data(socket, rec, 255);
