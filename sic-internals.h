@@ -21,6 +21,7 @@ void * runclient(void * args);
 int sic_id();
 void send_packet_to_server(char *msg, char *recv);
 
+void dispatch(char* msg, int id, int code, int value);
 
 /** Clone a page within the shared virtual address space into the local address
  * space and memcpy the old page contents there. Remove write protections on the

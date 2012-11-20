@@ -1,9 +1,8 @@
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-
-//int main(int argc, char * argv[]);
-int runserver(int argc, char * argv[]);
 
 // Server methods
 void bind_to_port(int socket, int port);
@@ -16,3 +15,4 @@ void connect_to_server();
 // Client methods
 int open_socket(const char* ip, int port);
 int send_packet(const char* ip, int port, const char* msg, char* rec);
+int recv_data(int socket, char* rec, int len);

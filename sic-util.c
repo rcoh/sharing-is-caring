@@ -1,5 +1,6 @@
 #include "sic-util.h"
 #include "time.h"
+#include "assert.h"
 
 void sic_panic(char * msg) {
   fprintf(stderr, "%s: %s\n", msg, strerror(errno));
@@ -37,5 +38,16 @@ void sic_log_fn(const char* fn, const char* msg) {
   // Log it to the file
   fprintf(file, "[%s]: %s\n", buf, msg);
   fclose(file);
+}
+
+int encode_message(char* msg, int id, int code, int value) {
+  assert(id < 100);
+  assert(code < 100);
+  assert(value < 100);
+  return snprintf(msg, 10, "%02d %02d %02d\n", id, code, value);
+}
+
+int decode_message(char* msg, int* id, int* code, int* value) {
+  return sscanf(msg, "%02d %02d %02d", id, code, value);
 }
 

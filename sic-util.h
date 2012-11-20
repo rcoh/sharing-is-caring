@@ -29,6 +29,15 @@ typedef uint32_t lock_id;
 #define SERVER_PORT 1337
 #define CLIENT_BASE_PORT 1338
 
+#define CLIENT_AT_BARRIER 1
+#define ACK_CLIENT_AT_BARRIER 2
+#define ACK_NO_SUCH_BARRIER 3
+#define SERVER_RELEASE_BARRIER 4
+#define ACK_RELEASE_BARRIER 5
+#define CLIENT_INIT 6
+#define SERVER_INIT 7
+
+#define ERROR_ALL 99
 // Error Codes 
 
 #define E_INVALID_BARRIER -1
@@ -38,4 +47,7 @@ void sic_panic(char * msg);
 void sic_log(const char* msg);
 void sic_log_fn(const char* fn, const char* msg);
 
-void sic_logf(const char* format, ...); 
+void sic_logf(const char* format, ...);
+
+int encode_message(char* msg, int id, int code, int value);
+int decode_message(char* msg, int* id, int* code, int* value);

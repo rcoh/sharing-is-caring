@@ -38,41 +38,33 @@ int open_socket(const char* ip, int port) {
   return s;
 }
 
+int recv_data(int socket, char* rec, int len) {
+  int bytes_recv = recv(socket, rec, len, 0);
+  while (bytes_recv) {
+    //sic_logf("received: %d\n", bytes_recv);
+    len -= bytes_recv;
+    if (rec[bytes_recv-1] == '\n') {
+      rec[bytes_recv-1] = '\0';
+      return 0;
+    }
+    if (bytes_recv < 0)
+      return bytes_recv;
+    if (len == 0)
+      return 0;
+    bytes_recv = recv(socket, rec, len, 0);
+  }
+  return 0;
+}
+
 int send_packet(const char* ip, int port, const char* msg, char* rec) {
   int socket = open_socket(ip, port);
+  sic_logf("Trying to send [%s] to [%s] on port [%d]\n", msg, ip, port);
   int result = send(socket, msg, strlen(msg), 0);
   if (result < 0)
     fprintf(stderr, "Could not send packet, well fuck\n");
-  int bytes_recv = recv(socket, rec, 255, 0);
-  while (bytes_recv) {
-    if (bytes_recv < 0)
-      break;
-    rec[bytes_recv] = '\0';
-    bytes_recv = recv(socket, rec, 255, 0);
-  }
+  result = recv_data(socket, rec, 255);
   close(socket);
   return result;
-}
-
-int runserver(int argc, char * argv[]) {
-  sic_log("Starting server ...");
-  char *replies[] = {
-    "Hello World\n"
-  };
-  int listener_d = open_listener_socket();
-  bind_to_port(listener_d, 30000);
-  listen(listener_d, 10);
-  puts("Waiting for connection . . .\n");
-  // Poll for
-  while (1) {
-    struct sockaddr_storage client_addr;
-    unsigned int address_size = sizeof(client_addr);
-    int connect_d = accept(listener_d, (struct sockaddr*) &client_addr, &address_size);
-    char * msg = replies[0];
-    send(connect_d, msg, strlen(msg), 0);
-    close(connect_d);
-  }
-  return 0;
 }
 
 void connect_to_server() {

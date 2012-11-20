@@ -24,6 +24,14 @@ typedef struct {
   bool held;
 } Lock;
 
+typedef struct {
+  char host[1024];
+  int port;
+} Client;
+
+void * runserver(void * args);
+void server_dispatch(char * return_msg, const char * client_ip, int id, int code, int value);
+
 /** Called by network code when the server gets new client. */
 int client_arrived_at_barrier(client_id client, barrier_id barrier);
 
@@ -44,6 +52,9 @@ void client_frees_lock(client_id client, lock_id lock);
  * Calls network code broadcasting to all clients, and marks the barrier as 
  * cleared. 
  */
+
+/** client setup signals */
+client_id new_client(const char * inet_addr);
 
 /** Barrier signals */
 void release_clients(Barrier *barrier);
