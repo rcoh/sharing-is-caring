@@ -1,3 +1,5 @@
+#ifndef SIC_UTIL_H
+#define SIC_UTIL_H
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,8 +48,28 @@ void sic_panic(char * msg);
 
 void sic_log(const char* msg);
 void sic_log_fn(const char* fn, const char* msg);
-
 void sic_logf(const char* format, ...);
 
 int encode_message(char* msg, int id, int code, int value);
 int decode_message(char* msg, int* id, int* code, int* value);
+
+// Memdiff code 
+
+// Length of unchanged bytes -> new byte
+
+typedef struct {
+  uint16_t length: 12;
+  uint8_t new_content;
+} MemDiff;
+
+typedef struct {
+  MemDiff *diffs;
+  size_t num_diffs;
+} RegionDiff;
+
+
+RegionDiff memdiff(void *old, void *new, size_t length);
+
+void print_diff(RegionDiff diff);
+
+#endif

@@ -4,6 +4,10 @@ client_id sic_client_id = -1;
 
 bool blocked;
 
+static PageInfo *invalid_pages;
+
+/** Synchronization **/
+
 void arrived_at_barrier(barrier_id id) {
   blocked = true;
   char msg[10];
@@ -26,6 +30,8 @@ void released_from_barrier(barrier_id id) {
   blocked = false;
   sic_logf("Client released from barrier %d\n", id);
 }
+
+/** Networking **/
 
 void wait_for_server() {
   sic_client_id = 0;
@@ -79,5 +85,76 @@ void dispatch(char* return_msg, int id, int code, int value) {
       break;
     default:
       sic_logf("Can't handle code: %d\n", code);
+  }
+}
+
+/** Memory Management **/
+
+static void handler(int sig, siginfo_t *si, void *unused) {
+  sic_logf("Got SIGSEGV at address: 0x%lx",(long) si->si_addr);
+  sic_logf("Marking it writeable");
+  void * failing_page = ROUNDDOWN(si->si_addr, PGSIZE);
+  if(mprotect(failing_page, PGSIZE, PROT_READ | PROT_WRITE) < 0) {
+    printf("mprotect failed.");
+  }
+  sic_logf("Cloning page");
+  register_page(twin_page(failing_page), failing_page);
+}
+
+void initialize_memory_manager() {
+  // Setup sigaction handler
+  struct sigaction sa;
+
+  sa.sa_flags = SA_SIGINFO;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_sigaction = handler;
+  if (sigaction(SIGSEGV, &sa, NULL) == -1)
+    printf("Failure creating handler\n");
+
+}
+
+void mark_read_only(void *start, size_t length) {
+  mprotect(start, length, PROT_READ);
+}
+
+void *twin_page(void *va) {
+  void *new_page = memalign(PGSIZE, PGSIZE);
+  memcpy(new_page, va, PGSIZE);
+  return new_page;
+}
+
+/** Appends to the head of the list of invalid pages */
+void register_page(void *oldva, void *newva) {
+  if (invalid_pages == NULL) {
+    invalid_pages = (PageInfo *)malloc(sizeof(PageInfo));
+  } else { 
+    PageInfo *new = (PageInfo *)malloc(sizeof(PageInfo));
+    new->next = invalid_pages;
+    invalid_pages = new;
+  }
+  invalid_pages->old_page_addr = oldva;
+  invalid_pages->new_page_addr = newva;
+  
+  invalid_pages->next = NULL;
+  sic_logf("Registered %p cloned at %p", newva, oldva);
+}
+
+/** Logs the current state off memory affairs **/
+void memstat() {
+  sic_logf(" ----- Computing memstat ---- ");
+  PageInfo *w = invalid_pages;
+  int num_pages = 0;
+  while(w) {
+    num_pages++; 
+    w = w->next;
+  }
+  sic_logf("Num cloned pages: %d", num_pages);
+  w = invalid_pages;
+  while(w) {
+    sic_logf("about to make diff");
+    RegionDiff diff = memdiff(w->old_page_addr, w->new_page_addr, PGSIZE);
+    sic_logf("about to print");
+    print_diff(diff);
+    w = w->next;
   }
 }

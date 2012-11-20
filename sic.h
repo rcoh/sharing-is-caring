@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/mman.h>
 #include <malloc.h>
 #include "sic-util.h"
 
@@ -34,3 +33,5 @@ void sic_barrier(uint32_t id);
 void sic_lock(lock_id id);
 
 void sic_unlock(lock_id id);
+
+void memstat();

@@ -195,19 +195,22 @@ void signal_invalid_release(client_id client, lock_id lock) {
  */
 void assert_empty_barrier(Barrier b) {
   // Make sure it's empty
-  for (int i = 0; i < NUM_CLIENTS; i++) {
+  int i;
+  for (i = 0; i < NUM_CLIENTS; i++) {
     assert(b.clients_arrived[i] == false);
   }
 }
 
 void assert_full_barrier(Barrier b) {
-  for (int i = 0; i < NUM_CLIENTS; i++) {
+  int i;
+  for (i = 0; i < NUM_CLIENTS; i++) {
     assert(b.clients_arrived[i] == true);
   }
 }
 
 void clear_barrier(Barrier *b) {
-  for (int i = 0; i < NUM_CLIENTS; i++) {
+  int i;
+  for (i = 0; i < NUM_CLIENTS; i++) {
     b->clients_arrived[i] = false;
   }
   b->num_clients_waiting = 0;
