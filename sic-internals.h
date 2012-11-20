@@ -14,8 +14,9 @@
 #include "network.h"
 
 typedef struct __PageInfo {
-  void * old_page_addr;
-  void * new_page_addr;
+  void * real_page_addr;
+  void * twinned_page_addr;
+  RegionDiff diff;
   struct __PageInfo *next;
 } PageInfo;
 
@@ -59,3 +60,8 @@ void register_page(void *old_va, void *new_va);
 
 /** Logs the current state of affairs **/
 void memstat();
+
+/* Wrapper around memdiff */
+RegionDiff diff_for_page(PageInfo *p);
+
+void diff_and_cleanup();
