@@ -19,6 +19,9 @@ typedef struct __PageInfo {
   struct __PageInfo *next;
 } PageInfo;
 
+/** Init / Exit Methods **/
+void initialize_client();
+void cleanup_client();
 
 /** Client arrived at barrier. Blocks until barrier is clear. */
 void arrived_at_barrier(barrier_id barrier);
@@ -33,7 +36,6 @@ void wait_for_server();
 void * runclient(void * args);
 
 int sic_id();
-void send_packet_to_server(char *msg, char *recv);
 
 void dispatch(char* msg, int id, int code, int value);
 
@@ -59,3 +61,6 @@ void register_page(void *old_va, void *new_va);
 
 /** Logs the current state of affairs **/
 void memstat();
+
+/** Actually does a malloc on our shared memory space **/
+void * alloc(size_t len);
