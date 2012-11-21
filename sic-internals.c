@@ -1,10 +1,52 @@
 #include "sic-internals.h"
 
+/** Global client state **/
+
+// Client ID for this client
 client_id sic_client_id = -1;
 
+// Base range of this clients shared memory mappings
+void * shared_base;
+void * next_free;
+
+// Whether this client is blocked on a barrier
 bool blocked;
 
+// List of invalid pages
 static PageInfo *invalid_pages;
+
+/** Init / Exit **/
+
+void initialize_client() {
+  // MMAP the shared block of memory
+  shared_base = mmap(NULL, SHARED_SIZE,
+                     PROT_READ,
+                     MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  if (shared_base == MAP_FAILED)
+    sic_panic("Could not map shared memory space. Out of VA space.");
+
+  next_free = shared_base;
+
+  // Request an id from the server and wait for the response
+  wait_for_server();
+  // Initialize our internal memory manager
+  initialize_memory_manager();
+}
+
+void cleanup_client() {
+  munmap(shared_base, SHARED_SIZE);
+}
+
+// Currently a very stupid alloc ...
+void * alloc(size_t len) {
+  void * ret = next_free;
+  len = ROUNDUP(len, PGSIZE);
+  if ((next_free + len) - shared_base > SHARED_SIZE)
+    ret = NULL;
+  else
+    next_free = ret + len;
+  return ret;
+}
 
 /** Synchronization **/
 

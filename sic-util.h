@@ -34,6 +34,8 @@ typedef uint32_t lock_id;
 #define SERVER_PORT 1337
 #define CLIENT_BASE_PORT 1338
 
+#define SHARED_SIZE (1 << 20)
+
 #define CLIENT_AT_BARRIER 1
 #define ACK_CLIENT_AT_BARRIER 2
 #define ACK_NO_SUCH_BARRIER 3
