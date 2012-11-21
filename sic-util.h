@@ -11,7 +11,7 @@
 
 
 #define PGSIZE 4096
-#define MSGMAX_SIZE 100
+#define MSGMAX_SIZE 1024 
 // Rounding operations (efficient when n is a power of 2)
 // Round down to the nearest multiple of n
 #define ROUNDDOWN(a, n)           \
@@ -29,6 +29,7 @@
 typedef int client_id;
 typedef uint32_t barrier_id;
 typedef uint32_t lock_id;
+typedef uint32_t DiffGranularity;
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 1337
@@ -58,6 +59,8 @@ void sic_logf(const char* format, ...);
 int encode_message(uint8_t* msg, int id, int code, int value);
 int decode_message(uint8_t* msg, int* id, int* code, int* value);
 
+int encode_transmission(uint8_t *buf, Transmission *trans); 
+
 // Memdiff code 
 
 typedef struct {
@@ -66,7 +69,7 @@ typedef struct {
 } MemDiff;
 
 typedef struct {
-  MemDiff *diffs;
+  DiffSegment *diffs;
   size_t num_diffs;
 } RegionDiff;
 

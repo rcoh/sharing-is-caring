@@ -44,6 +44,8 @@ void mark_read_only(void *start, size_t length);
 
 void initialize_memory_manager();
 
+void to_proto(RegionDiff r, RegionDiffProto *rp);
+
 /** 
  * Clone a page within the shared virtual address space into the local address
  * space and memcpy the old page contents there. 
@@ -69,4 +71,4 @@ void * alloc(size_t len);
 /* Wrapper around memdiff */
 RegionDiff diff_for_page(PageInfo *p);
 
-void diff_and_cleanup();
+void diff_and_cleanup(uint8_t *msg, client_id client, int code, int value);
