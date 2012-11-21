@@ -62,7 +62,8 @@ void arrived_at_barrier(barrier_id id) {
   printf("Got response code from server: %d\n", scode);
   if (scode != ACK_CLIENT_AT_BARRIER)
     sic_panic("Networking error, could not get ack from client");
-  
+
+  // Compute memory diff to send
   diff_and_cleanup();
   while(blocked) {
     sched_yield();

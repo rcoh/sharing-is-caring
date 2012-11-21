@@ -29,8 +29,8 @@ void *sic_malloc(size_t size) {
 
 void sic_claim(void* addr, size_t len);
 
+/** Allow internal state to clean itself up **/
 void sic_exit() {
-  // Allow internal state to clean itself up
   cleanup_client();
 }
 
