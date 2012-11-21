@@ -59,10 +59,11 @@ int decode_message(char* msg, int* id, int* code, int* value) {
 RegionDiff memdiff(void *old, void *new, size_t length) {
   const uint8_t * op = old;
   const uint8_t * np = new;
-  size_t run_length = 0;
-  size_t bytes_consumed = 0;
-  size_t num_diffs = 0;
+  size_t run_length = 0, bytes_consumed = 0, num_diffs = 0;
+
+  // Allocate the most space we could possibly need
   MemDiff *diffs = (MemDiff *)malloc(length * sizeof(MemDiff));
+
   while(bytes_consumed < length) {
     if (*op == *np) {
       run_length++;
@@ -76,12 +77,34 @@ RegionDiff memdiff(void *old, void *new, size_t length) {
     op++;
     np++;
   }
-  diffs = (MemDiff *)realloc((void *)diffs, num_diffs * sizeof(MemDiff));
 
+  // Shrink it to what we actually need
+  diffs = (MemDiff *)realloc((void *)diffs, num_diffs * sizeof(MemDiff));
+  
   RegionDiff r;
   r.diffs = diffs;
   r.num_diffs = num_diffs;
   return r;
+}
+
+void apply_diff(void *page_addr, RegionDiff diff) {
+  uint8_t *w = page_addr;
+  int i;
+  for (i = 0; i < diff.num_diffs; i++) {
+    w += diff.diffs[i].length;
+    *w = diff.diffs[i].new_content;
+  }
+}
+
+RegionDiff merge_diffs(int num_diffs, RegionDiff *r) {
+  void *new_page = malloc(PGSIZE);
+  memset(new_page, 0, PGSIZE);
+  int i;
+  for (i = 0; i < num_diffs; i++) {
+    apply_diff(new_page, r[i]);
+  }
+
+  return r[0];
 }
 
 void print_diff(RegionDiff diff) {

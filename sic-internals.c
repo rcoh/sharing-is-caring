@@ -62,6 +62,8 @@ void arrived_at_barrier(barrier_id id) {
   printf("Got response code from server: %d\n", scode);
   if (scode != ACK_CLIENT_AT_BARRIER)
     sic_panic("Networking error, could not get ack from client");
+  
+  diff_and_cleanup();
   while(blocked) {
     sched_yield();
   }
@@ -140,7 +142,7 @@ static void handler(int sig, siginfo_t *si, void *unused) {
     printf("mprotect failed.");
   }
   sic_logf("Cloning page");
-  register_page(twin_page(failing_page), failing_page);
+  register_page(failing_page, twin_page(failing_page));
 }
 
 void initialize_memory_manager() {
@@ -166,7 +168,7 @@ void *twin_page(void *va) {
 }
 
 /** Appends to the head of the list of invalid pages */
-void register_page(void *oldva, void *newva) {
+void register_page(void *realva, void *twinnedva) {
   if (invalid_pages == NULL) {
     invalid_pages = (PageInfo *)malloc(sizeof(PageInfo));
   } else { 
@@ -174,11 +176,32 @@ void register_page(void *oldva, void *newva) {
     new->next = invalid_pages;
     invalid_pages = new;
   }
-  invalid_pages->old_page_addr = oldva;
-  invalid_pages->new_page_addr = newva;
+  invalid_pages->real_page_addr = realva;
+  invalid_pages->twinned_page_addr = twinnedva;
+  invalid_pages->diff.num_diffs = -1;
   
   invalid_pages->next = NULL;
-  sic_logf("Registered %p cloned at %p", newva, oldva);
+  sic_logf("Registered %p cloned at %p", realva, twinnedva);
+}
+
+/* 
+ * Computes the diffs, frees the locally mapped pages, and marks the
+ * real page read only again.
+ */
+void diff_and_cleanup() {
+  sic_logf("About to create diffs");
+  memstat();
+  PageInfo *w = invalid_pages;
+  while(w) {
+    w->diff = diff_for_page(w);
+    free(w->twinned_page_addr);
+    mark_read_only(w->real_page_addr, PGSIZE);
+    w = w->next;
+  }
+}
+
+RegionDiff diff_for_page(PageInfo *page) {
+  return memdiff(page->twinned_page_addr, page->real_page_addr, PGSIZE);
 }
 
 /** Logs the current state off memory affairs **/
@@ -194,7 +217,8 @@ void memstat() {
   w = invalid_pages;
   while(w) {
     sic_logf("about to make diff");
-    RegionDiff diff = memdiff(w->old_page_addr, w->new_page_addr, PGSIZE);
+    // The "real" page contains the new content
+    RegionDiff diff = diff_for_page(w);
     sic_logf("about to print");
     print_diff(diff);
     w = w->next;

@@ -57,8 +57,6 @@ int decode_message(char* msg, int* id, int* code, int* value);
 
 // Memdiff code 
 
-// Length of unchanged bytes -> new byte
-
 typedef struct {
   uint16_t length: 12;
   uint8_t new_content;
@@ -71,6 +69,8 @@ typedef struct {
 
 
 RegionDiff memdiff(void *old, void *new, size_t length);
+
+void applydiff(void *va, RegionDiff diff);
 
 void print_diff(RegionDiff diff);
 

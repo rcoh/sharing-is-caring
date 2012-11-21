@@ -14,8 +14,9 @@
 #include "network.h"
 
 typedef struct __PageInfo {
-  void * old_page_addr;
-  void * new_page_addr;
+  void * real_page_addr;
+  void * twinned_page_addr;
+  RegionDiff diff;
   struct __PageInfo *next;
 } PageInfo;
 
@@ -64,3 +65,8 @@ void memstat();
 
 /** Actually does a malloc on our shared memory space **/
 void * alloc(size_t len);
+
+/* Wrapper around memdiff */
+RegionDiff diff_for_page(PageInfo *p);
+
+void diff_and_cleanup();

@@ -13,7 +13,7 @@ int main() {
   }
   printf("foo[0]: %c\n", foo[0]);
 
-  memstat();
+  sic_barrier(0);
 
   return 0;
 }
