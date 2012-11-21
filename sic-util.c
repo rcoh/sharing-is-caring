@@ -43,9 +43,6 @@ void sic_log_fn(const char* fn, const char* msg) {
 }
 
 int encode_message(uint8_t* msg, int id, int code, int value) {
-  assert(id < 100);
-  assert(code < 100);
-  assert(value < 100);
   
   Transmission transmission = TRANSMISSION__INIT;
   transmission.id = id;
@@ -84,29 +81,29 @@ int decode_message(uint8_t* msg, int* id, int* code, int* value) {
 // (length, diff)
 //
 RegionDiff memdiff(void *old, void *new, size_t length) {
-  const uint8_t * op = old;
-  const uint8_t * np = new;
+  const DiffGranularity * op = old;
+  const DiffGranularity * np = new;
   size_t run_length = 0, bytes_consumed = 0, num_diffs = 0;
 
   // Allocate the most space we could possibly need
-  MemDiff *diffs = (MemDiff *)malloc(length * sizeof(MemDiff));
+  DiffSegment *diffs = (DiffSegment *)malloc(length * sizeof(DiffSegment));
 
   while(bytes_consumed < length) {
     if (*op == *np) {
       run_length++;
     } else {
       diffs[num_diffs].length = run_length;
-      diffs[num_diffs].new_content = *np;
+      diffs[num_diffs].new_data = *np;
       run_length = 0;
       num_diffs++;
     }
-    bytes_consumed++;
+    bytes_consumed += sizeof(DiffGranularity);
     op++;
     np++;
   }
 
   // Shrink it to what we actually need
-  diffs = (MemDiff *)realloc((void *)diffs, num_diffs * sizeof(MemDiff));
+  diffs = (DiffSegment *)realloc((void *)diffs, num_diffs * sizeof(DiffSegment));
   
   RegionDiff r;
   r.diffs = diffs;
@@ -115,11 +112,11 @@ RegionDiff memdiff(void *old, void *new, size_t length) {
 }
 
 void apply_diff(void *page_addr, RegionDiff diff) {
-  uint8_t *w = page_addr;
+  DiffGranularity *w = page_addr;
   int i;
   for (i = 0; i < diff.num_diffs; i++) {
     w += diff.diffs[i].length;
-    *w = diff.diffs[i].new_content;
+    *w = diff.diffs[i].new_data;
   }
 }
 
@@ -143,11 +140,11 @@ void print_diff(RegionDiff diff) {
   sic_logf("Printing Diff.");
   sic_logf("\tDiff contains %d components", diff.num_diffs);
   sic_logf("\tDiff contents: ");
-  MemDiff *cur = diff.diffs;
+  DiffSegment *cur = diff.diffs;
   int num_diffs = 0;
   while(num_diffs < diff.num_diffs) {
-    sic_logf("\t\t%d Unmodified bytes -> %x.", 
-        cur[num_diffs].length, cur[num_diffs].new_content);
+    sic_logf("\t\t%d Unmodified word -> %x.", 
+        cur[num_diffs].length, cur[num_diffs].new_data);
     num_diffs++;
   }
 }

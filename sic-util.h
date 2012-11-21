@@ -29,6 +29,7 @@
 typedef int client_id;
 typedef uint32_t barrier_id;
 typedef uint32_t lock_id;
+typedef uint32_t DiffGranularity;
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 1337
@@ -66,12 +67,14 @@ typedef struct {
 } MemDiff;
 
 typedef struct {
-  MemDiff *diffs;
+  DiffSegment *diffs;
   size_t num_diffs;
 } RegionDiff;
 
 
 RegionDiff memdiff(void *old, void *new, size_t length);
+
+RegionDiff2 memdiff2(void *old, void *new, size_t length);
 
 void applydiff(void *va, RegionDiff diff);
 
