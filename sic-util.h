@@ -7,8 +7,11 @@
 #include <errno.h>
 #include <stdarg.h>
 
+#include "sic-message.pb-c.h"
+
 
 #define PGSIZE 4096
+#define MSGMAX_SIZE 100
 // Rounding operations (efficient when n is a power of 2)
 // Round down to the nearest multiple of n
 #define ROUNDDOWN(a, n)           \
@@ -50,8 +53,8 @@ void sic_log(const char* msg);
 void sic_log_fn(const char* fn, const char* msg);
 void sic_logf(const char* format, ...);
 
-int encode_message(char* msg, int id, int code, int value);
-int decode_message(char* msg, int* id, int* code, int* value);
+int encode_message(uint8_t* msg, int id, int code, int value);
+int decode_message(uint8_t* msg, int* id, int* code, int* value);
 
 // Memdiff code 
 

@@ -34,9 +34,9 @@ void wait_for_server();
 void * runclient(void * args);
 
 int sic_id();
-void send_packet_to_server(char *msg, char *recv);
+void send_packet_to_server(uint8_t *msg, uint8_t *recv);
 
-void dispatch(char* msg, int id, int code, int value);
+int dispatch(uint8_t* msg, int id, int code, int value);
 
 void mark_read_only(void *start, size_t length);
 

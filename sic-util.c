@@ -42,15 +42,42 @@ void sic_log_fn(const char* fn, const char* msg) {
   fclose(file);
 }
 
-int encode_message(char* msg, int id, int code, int value) {
+int encode_message(uint8_t* msg, int id, int code, int value) {
   assert(id < 100);
   assert(code < 100);
   assert(value < 100);
-  return snprintf(msg, 10, "%02d %02d %02d", id, code, value);
+  
+  Transmission transmission = TRANSMISSION__INIT;
+  transmission.id = id;
+  transmission.code = code;
+  transmission.value = value;
+  sic_logf("Encoded size: %u", transmission__get_packed_size(&transmission));
+
+  msg += 4;
+  int len = transmission__pack(&transmission, msg);
+  msg[len] = 0;
+  msg -= 4;
+  *msg = len;
+  return len + 4;
 }
 
-int decode_message(char* msg, int* id, int* code, int* value) {
-  return sscanf(msg, "%02d %02d %02d", id, code, value);
+int decode_message(uint8_t* msg, int* id, int* code, int* value) {
+  // find the length. need to refactor this.
+  int len = (size_t) *msg;
+  msg += 4;
+  Transmission *trans;
+  // Unpack the message using protobuf-c.
+  trans = transmission__unpack(NULL, len, msg);   
+  if (trans == NULL)
+  {
+    fprintf(stderr, "error unpacking incoming message\n");
+    exit(1);
+  }
+
+  *id = trans->id;
+  *code = trans->code;
+  *value = trans->value;
+  return 0;
 }
 
 // Pointer to an array of 

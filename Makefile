@@ -11,7 +11,7 @@ SERVER_SOURCES = sic-server.c
 
 # What we're building
 
-PRODUCT = test-barriers server test-malloc 
+PRODUCT = protos test-barriers server test-malloc 
 GENERIC_OBJECTS = $(patsubst %.c,%.o,$(GENERIC_SOURCES))
 SERVER_OBJECTS = $(patsubst %.c,%.o,$(SERVER_SOURCES))
 
@@ -34,6 +34,9 @@ CFLAGS += -O3 -DNDEBUG -gdwarf-3
 endif
 
 all: $(PRODUCT) 
+
+protos: sic-message.proto
+	protoc-c --c_out=. sic-message.proto
 
 server: $(SERVER_OBJECTS) $(GENERIC_OBJECTS)
 	$(CC) $(GENERIC_OBJECTS) $(SERVER_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@

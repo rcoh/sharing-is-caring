@@ -30,7 +30,7 @@ typedef struct {
 } Client;
 
 void * runserver(void * args);
-void server_dispatch(char * return_msg, const char * client_ip, int id, int code, int value);
+int server_dispatch(uint8_t * return_msg, const char * client_ip, int id, int code, int value);
 
 /** Called by network code when the server gets new client. */
 int client_arrived_at_barrier(client_id client, barrier_id barrier);

@@ -19,7 +19,7 @@ int main(int argc, char *argv[], char *evnp[]) {
 void * runserver(void * args) {
   int sid, scode, svalue;
   sic_log("Starting server ...");
-  char buffer[256];
+  uint8_t buffer[256];
   int listener_d = open_listener_socket();
   bind_to_port(listener_d, SERVER_PORT);
   listen(listener_d, 10);
@@ -36,38 +36,38 @@ void * runserver(void * args) {
 
     // Process the message
     decode_message(buffer, &sid, &scode, &svalue);
-    char msg[10];
+    uint8_t msg[MSGMAX_SIZE];
     char host[1024];
     char service[24];
     getnameinfo((struct sockaddr*) &client_addr, sizeof(client_addr),
                 host, sizeof(host),
                 service, sizeof(service), NI_NUMERICHOST | NI_NUMERICSERV);
 
-    server_dispatch(msg, host, sid, scode, svalue);
+    int response_length = server_dispatch(msg, host, sid, scode, svalue);
 
     // Send back the response message
-    send(connect_d, msg, strlen(msg), 0);
+    send(connect_d, msg, response_length, 0);
     close(connect_d);
   }
   return 0;
 }
 
-void server_dispatch(char * return_msg, const char * client_ip, int id, int code, int value) {
+int server_dispatch(uint8_t * return_msg, const char * client_ip, int id, int code, int value) {
   sic_logf("Server processing: %d, %d, %d\n", id, code, value);
   client_id result;
   switch(code) {
     case CLIENT_INIT:
       result = new_client(client_ip);
       sic_logf("Server responding with id: %d\n", result);
-      encode_message(return_msg, -1, SERVER_INIT, result);
+      return encode_message(return_msg, -1, SERVER_INIT, result);
       break;
     case CLIENT_AT_BARRIER:
       sic_logf("Server marking %d as at barrier %d\n", id, value);
       client_arrived_at_barrier((client_id) id, (barrier_id) value);
-      encode_message(return_msg, -1, ACK_CLIENT_AT_BARRIER, value);
+      return encode_message(return_msg, -1, ACK_CLIENT_AT_BARRIER, value);
       break;
     default:
-      encode_message(return_msg, -1, ERROR_ALL, -1);
+      return encode_message(return_msg, -1, ERROR_ALL, -1);
       sic_logf("Can't handle %d\n", code);
   }
 }
@@ -156,15 +156,15 @@ void release_clients(Barrier *barrier) {
 
 void broadcast_barrier_release(barrier_id id) {
   int i;
-  char msg[10];
-  char resp[256];
+  uint8_t msg[MSGMAX_SIZE];
+  uint8_t resp[256];
   int cis, ccode, cvalue;
   for(i = 0; i < NUM_CLIENTS; i++) {
     memset(msg, 0, sizeof(msg));
     memset(resp, 0, sizeof(resp));
     sic_logf("Sending barrier release message to %s on port %d\n", clients[i].host, clients[i].port);
-    encode_message(msg, -1, SERVER_RELEASE_BARRIER, id);
-    send_packet(clients[i].host, clients[i].port, msg, resp);
+    int len = encode_message(msg, -1, SERVER_RELEASE_BARRIER, id);
+    send_packet(clients[i].host, clients[i].port, msg, len, resp);
     decode_message(resp, &cis, &ccode, &cvalue);
     if (ccode != ACK_RELEASE_BARRIER)
       sic_panic("Did not hear back from client");
