@@ -50,20 +50,28 @@ void * alloc(size_t len) {
 
 /** Synchronization **/
 
-void arrived_at_barrier(barrier_id id) {
-  blocked = true;
+int signal_server(message_t code, int value, message_t expected_ack) {
   uint8_t msg[MSGMAX_SIZE];
   uint8_t resp[256];
   int sid, scode, svalue;
-  sic_logf("Client %d hitting barrier: %d\n", sic_id(), id);
-  diff_and_cleanup(msg, sic_id(), CLIENT_AT_BARRIER, id);
-  int len = encode_message(msg, sic_id(), CLIENT_AT_BARRIER, id);
-  send_packet(SERVER_IP, SERVER_PORT, msg, len, resp);
+  int len = encode_message(msg, sic_id(), code, value);
+  sic_logf("Sending all the signals to the server\n");
+  send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
-  printf("Got response code from server: %d\n", scode);
-  if (scode != ACK_CLIENT_AT_BARRIER)
-    sic_panic("Networking error, could not get ack from client");
+  sic_logf("Got response code from server: %d\n", scode);
+  if (expected_ack && scode != expected_ack)
+    sic_panic("Networking error, could not get ack from server");
+  return scode;
+}
 
+void arrived_at_barrier(barrier_id id) {
+  blocked = true;
+  sic_logf("[CLIENT] %d hitting barrier: %d\n", sic_id(), id);
+
+  // Compute memory diff to send
+  // uint8_t msg[MSGMAX_SIZE];
+  //diff_and_cleanup(msg, sic_id(), CLIENT_AT_BARRIER, id);
+  signal_server(CLIENT_AT_BARRIER, id, ACK_CLIENT_AT_BARRIER);
   while(blocked) {
     sched_yield();
   }
@@ -72,7 +80,24 @@ void arrived_at_barrier(barrier_id id) {
 void released_from_barrier(barrier_id id) {
   assert(!blocked);
   blocked = false;
-  sic_logf("Client released from barrier %d\n", id);
+  sic_logf("[CLIENT] %d released from barrier %d",sic_id(), id);
+}
+
+void acquire_lock(lock_id lock) {
+ while(signal_server(CLIENT_REQUEST_LOCK, lock, NO_ACK) == SERVER_LOCK_NOT_ACQUIRED) {
+   sched_yield();
+ }
+ sic_logf("[CLIENT] %d acquired lock %d", sic_id(), lock);
+}
+
+void release_lock(lock_id lock) {
+ int code = signal_server(CLIENT_RELEASE_LOCK, lock, NO_ACK);
+ if (code == SERVER_LOCK_NOT_RELEASED) {
+   sic_logf("[CLIENT] Could not release lock %d because %d never acquired it", lock, sic_id());
+ } else {
+   sic_logf("[CLIENT] Released lock %d held by %d", lock, sic_id());
+ }
+ // diff and cleanup!?
 }
 
 /** Networking **/
@@ -85,7 +110,7 @@ void wait_for_server() {
   int sid, scode, svalue;
   decode_message(resp, &sid, &scode, &svalue);
   sic_client_id = svalue;
-  sic_logf("Client initialized with id: %d\n", sic_id());
+  sic_logf("[CLIENT] Initialized with id: %d\n", sic_id());
 }
 
 int sic_id() {

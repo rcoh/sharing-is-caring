@@ -7,7 +7,7 @@
  * Start the sic process. Wait for everyone to get here.
  */
 void sic_init();
-
+void sic_exit();
 /*
  * Allocate shared memory.
  */

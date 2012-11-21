@@ -1,20 +1,9 @@
 message Transmission {
   required int32 id = 1; 
-  required MessageCode code = 2;
+  required int32 code = 2;
   required int32 value = 3;
   repeated RegionDiffProto diff_info = 4;
 }
-
-enum MessageCode {
-  CLIENT_AT_BARRIER  = 1;
-  ACK_CLIENT_AT_BARRIER = 2;
-  ACK_NO_SUCH_BARRIER = 3;
-  SERVER_RELEASE_BARRIER = 4;
-  ACK_RELEASE_BARRIER = 5;
-  CLIENT_INIT = 6;
-  SERVER_INIT = 7;
-}
-
 
 message RegionDiffProto {
   repeated DiffSegment diffs = 1;

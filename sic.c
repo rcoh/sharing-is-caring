@@ -16,11 +16,11 @@ void sic_init() {
 }
 
 void sic_lock(lock_id id) {
-  // Send packet to server
-  // uint8_t result[255];
-  // TODO: real protocol message
-  // TODO: loop while result indicates we don't have the lock
-  // send_packet(SERVER_IP, SERVER_PORT, "locked", result);
+  acquire_lock(id);
+}
+
+void sic_unlock(lock_id id) {
+  release_lock(id);
 }
 
 void *sic_malloc(size_t size) {

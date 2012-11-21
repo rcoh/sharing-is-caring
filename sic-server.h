@@ -36,10 +36,10 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, int id, int co
 int client_arrived_at_barrier(client_id client, barrier_id barrier);
 
 /** Called by network code when client requests a lock. */
-void client_requests_lock(client_id client, lock_id lock);
+message_t client_requests_lock(client_id client, lock_id lock);
 
 /** Called by network code when client frees a lock. */
-void client_frees_lock(client_id client, lock_id lock);
+message_t client_frees_lock(client_id client, lock_id lock);
 
 
 /** 

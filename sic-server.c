@@ -23,13 +23,12 @@ void * runserver(void * args) {
   int listener_d = open_listener_socket();
   bind_to_port(listener_d, SERVER_PORT);
   listen(listener_d, 10);
-  printf("Waiting for connection ...\n");
+  sic_logf("Waiting for connections from %d clients ...", NUM_CLIENTS);
   while (1) {
     memset(buffer, 0, sizeof(buffer));
     struct sockaddr_in client_addr;
     unsigned int address_size = sizeof(client_addr);
     int connect_d = accept(listener_d, (struct sockaddr*) &client_addr, &address_size);
-
     // Recieve the message from the client
     memset(buffer, 0, sizeof(buffer));
     recv_data(connect_d, buffer, 255);
@@ -53,23 +52,31 @@ void * runserver(void * args) {
 }
 
 int server_dispatch(uint8_t * return_msg, const char * client_ip, int id, int code, int value) {
-  sic_logf("Server processing: %d, %d, %d\n", id, code, value);
+  sic_logf("Server processing: id: %d, type: %s, value: %d\n", id, get_message(code), value);
   client_id result;
+  message_t rcode;
   switch(code) {
     case CLIENT_INIT:
       result = new_client(client_ip);
-      sic_logf("Server responding with id: %d\n", result);
+      sic_logf("Server responding with id: %d", result);
       return encode_message(return_msg, -1, SERVER_INIT, result);
-      break;
     case CLIENT_AT_BARRIER:
-      sic_logf("Server marking %d as at barrier %d\n", id, value);
+      sic_logf("Server marking %d as at barrier %d", id, value);
       client_arrived_at_barrier((client_id) id, (barrier_id) value);
       return encode_message(return_msg, -1, ACK_CLIENT_AT_BARRIER, value);
-      break;
+    case CLIENT_REQUEST_LOCK:
+      sic_logf("Server attempting to acquire lock %d for %d\n", value, id);
+      rcode = client_requests_lock(id, value);
+      return encode_message(return_msg, -1, rcode, value);
+    case CLIENT_RELEASE_LOCK:
+      sic_logf("Server attempting to release lock %d for %d\n", value, id);
+      rcode = client_frees_lock(id, value);
+      return encode_message(return_msg, -1, rcode, value);
     default:
-      return encode_message(return_msg, -1, ERROR_ALL, -1);
       sic_logf("Can't handle %d\n", code);
+      return encode_message(return_msg, -1, ERROR_ALL, -1);
   }
+  return 0;
 }
 
 /** 
@@ -122,30 +129,35 @@ int client_arrived_at_barrier(client_id client, barrier_id barrier) {
  * acquired and that the client should retry.
  *
  */
-void client_requests_lock(client_id client, lock_id lock) {
+message_t client_requests_lock(client_id client, lock_id lock) {
   pthread_mutex_lock(&server_lock);
+  message_t rcode;
   Lock *l = &locks[lock];
   if (l->held) {
-    signal_lock_not_acquired(client, lock);
+    rcode = SERVER_LOCK_NOT_ACQUIRED;
   } else {
     l->held = true;
     l->owner = client;
     l->id = lock;
-    signal_lock_acquired(client, lock);
+    rcode = SERVER_LOCK_ACQUIRED;
   }
   pthread_mutex_unlock(&server_lock);
+  return rcode;
 }
 
-void client_frees_lock(client_id client, lock_id lock) {
+message_t client_frees_lock(client_id client, lock_id lock) {
   pthread_mutex_lock(&server_lock);
+  message_t rcode;
   Lock *l = &locks[lock];
   if (l->held && l->owner == client) {
     l->held = false;
     l->owner = NO_OWNER;
-    signal_successful_release(client, lock);
+    rcode = SERVER_LOCK_RELEASED;
   } else {
-    signal_invalid_release(client, lock);
+    rcode = SERVER_LOCK_NOT_RELEASED;
   }
+  pthread_mutex_unlock(&server_lock);
+  return rcode;
 }
 
 void release_clients(Barrier *barrier) {
@@ -154,38 +166,56 @@ void release_clients(Barrier *barrier) {
   broadcast_barrier_release(barrier->id);
 }
 
-void broadcast_barrier_release(barrier_id id) {
-  int i;
+void signal_client(client_id id, message_t code, int value, message_t expected_ack) {
   uint8_t msg[MSGMAX_SIZE];
   uint8_t resp[256];
   int cis, ccode, cvalue;
+  memset(msg, 0, sizeof(msg));
+  memset(resp, 0, sizeof(resp));
+
+  sic_logf("Sending message to %s on port %d\n", clients[id].host, clients[id].port);
+
+  int len = encode_message(msg, -1, code, value);
+  send_message(clients[id].host, clients[id].port, msg, len, resp);
+  decode_message(resp, &cis, &ccode, &cvalue);
+  if (expected_ack && ccode != expected_ack)
+    sic_panic("Did not receive correct ack from client");
+
+}
+
+
+void broadcast_barrier_release(barrier_id id) {
+  int i;
   for(i = 0; i < NUM_CLIENTS; i++) {
-    memset(msg, 0, sizeof(msg));
-    memset(resp, 0, sizeof(resp));
     sic_logf("Sending barrier release message to %s on port %d\n", clients[i].host, clients[i].port);
-    int len = encode_message(msg, -1, SERVER_RELEASE_BARRIER, id);
-    send_packet(clients[i].host, clients[i].port, msg, len, resp);
-    decode_message(resp, &cis, &ccode, &cvalue);
-    if (ccode != ACK_RELEASE_BARRIER)
-      sic_panic("Did not hear back from client");
+    signal_client(i, SERVER_RELEASE_BARRIER, id, ACK_RELEASE_BARRIER);
   }
 }
 
+
 void signal_lock_acquired(client_id client, lock_id lock) {
-  // TODO: jlynch
+  if (client >= NUM_CLIENTS)
+    sic_panic("Client ID too high!");
+  signal_client(client, SERVER_LOCK_ACQUIRED, lock, ACK_ACQUIRED);
 }
 
 void signal_lock_not_acquired(client_id client, lock_id lock) {
-  // TODO: jlynch
+  if (client >= NUM_CLIENTS)
+    sic_panic("Client ID too high!");
+  signal_client(client, SERVER_LOCK_NOT_ACQUIRED, lock, ACK_NOT_ACQUIRED);
 }
 
 
 void signal_successful_release(client_id client, lock_id lock) {
-  // TODO: jlynch
+  if (client >= NUM_CLIENTS)
+    sic_panic("Client ID too high!");
+  signal_client(client, SERVER_LOCK_RELEASED, lock, ACK_RELEASED);
 }
 
 void signal_invalid_release(client_id client, lock_id lock) {
-  // TODO: jlynch
+  if (client >= NUM_CLIENTS)
+    sic_panic("Client ID too high!");
+  signal_client(client, SERVER_LOCK_NOT_RELEASED, lock, ACK_NOT_RELEASED);
 }
 
 /** 

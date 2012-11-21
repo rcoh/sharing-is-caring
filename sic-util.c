@@ -43,12 +43,10 @@ void sic_log_fn(const char* fn, const char* msg) {
 }
 
 int encode_message(uint8_t* msg, int id, int code, int value) {
-  
   Transmission transmission = TRANSMISSION__INIT;
   transmission.id = id;
   transmission.code = code;
   transmission.value = value;
-  sic_logf("Encoded size: %u", transmission__get_packed_size(&transmission));
   return encode_transmission(msg, &transmission);
 }
 
@@ -56,7 +54,7 @@ int encode_transmission(uint8_t *buf, Transmission *trans) {
   buf += 4;
   sic_logf("Encoded size: %u", transmission__get_packed_size(trans));
   int len = transmission__pack(trans, buf);
-  buf[len] = 0;
+  buf[len] = '\0';
   buf -= 4;
   *buf = len;
   return len + 4;
@@ -70,10 +68,7 @@ int decode_message(uint8_t* msg, int* id, int* code, int* value) {
   // Unpack the message using protobuf-c.
   trans = transmission__unpack(NULL, len, msg);   
   if (trans == NULL)
-  {
-    fprintf(stderr, "error unpacking incoming message\n");
-    exit(1);
-  }
+    sic_panic("error unpacking incoming message\n");
 
   *id = trans->id;
   *code = trans->code;
@@ -156,4 +151,28 @@ void print_diff(RegionDiff diff) {
   }
 }
 
+const char * get_message(message_t message) {
+  switch (message) {
+    case CLIENT_AT_BARRIER:
+      return "Client -> at barrier";
+    case ACK_CLIENT_AT_BARRIER:
+      return "Ack client at barrier";
+    case CLIENT_INIT:
+      return "Client init";
+    default:
+      return "Unknown";
+  }
+}
 
+char * hex_repr(char * msg) {
+  int i;
+  char * buffer = malloc(4*strlen(msg));
+  char s[4];
+  memset(s, 0, sizeof(s));
+  memset(buffer, 0, sizeof(buffer));
+  for (i = 0; msg[i] != '\0'; i++) {
+    snprintf(s, 4, " %02x ", msg[i]);
+    strncat(buffer, s, 4);
+  }
+  return buffer;
+}

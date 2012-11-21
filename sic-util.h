@@ -30,20 +30,35 @@ typedef int client_id;
 typedef uint32_t barrier_id;
 typedef uint32_t lock_id;
 typedef uint32_t DiffGranularity;
+typedef enum {
+  NO_ACK,
+  CLIENT_AT_BARRIER,
+  ACK_CLIENT_AT_BARRIER,
+  ACK_NO_SUCH_BARRIER,
+  SERVER_RELEASE_BARRIER,
+  ACK_RELEASE_BARRIER,
+  CLIENT_INIT,
+  SERVER_INIT,
+
+  CLIENT_REQUEST_LOCK,
+  SERVER_LOCK_ACQUIRED,
+  SERVER_LOCK_NOT_ACQUIRED,
+
+  CLIENT_RELEASE_LOCK,
+  SERVER_LOCK_RELEASED,
+  SERVER_LOCK_NOT_RELEASED,
+  ACK_RELEASED,
+  ACK_NOT_RELEASED,
+  ACK_ACQUIRED,
+  ACK_NOT_ACQUIRED,
+  ERROR_ALL
+} message_t;
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 1337
 #define CLIENT_BASE_PORT 1338
 
 #define SHARED_SIZE (1 << 20)
-
-#define CLIENT_AT_BARRIER 1
-#define ACK_CLIENT_AT_BARRIER 2
-#define ACK_NO_SUCH_BARRIER 3
-#define SERVER_RELEASE_BARRIER 4
-#define ACK_RELEASE_BARRIER 5
-#define CLIENT_INIT 6
-#define SERVER_INIT 7
 
 #define ERROR_ALL 99
 // Error Codes 
@@ -80,4 +95,7 @@ void applydiff(void *va, RegionDiff diff);
 
 void print_diff(RegionDiff diff);
 
+const char* get_message(message_t message);
+
+char* hex_repr(char * msg);
 #endif

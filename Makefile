@@ -3,6 +3,8 @@
 GENERIC_SOURCES = sic.c sic-internals.c sic-util.c network.c sic-message.pb-c.c
 HEADERS = sic.h sic-internals.h network.h sic-util.h sic-server.h sic-message.pb-c.h google/protobuf-c/protobuf-c.h google/protobuf-c/protobuf-c-rpc.h google/protobuf-c/protobuf-c-dispatch.h google/protobuf-c/protobuf-c-private.h
 
+TESTLOCKS_SOURCES = test-locks.c
+
 TESTBARRIER_SOURCES = test-barriers.c
 
 TESTMALLOC_SOURCES = test-malloc.c
@@ -11,7 +13,7 @@ SERVER_SOURCES = sic-server.c
 
 # What we're building
 
-PRODUCT = protos test-barriers server test-malloc 
+PRODUCT = protos test-barriers server test-malloc test-locks
 GENERIC_OBJECTS = $(patsubst %.c,%.o,$(GENERIC_SOURCES))
 SERVER_OBJECTS = $(patsubst %.c,%.o,$(SERVER_SOURCES))
 
@@ -19,9 +21,11 @@ TESTBARRIER_OBJECTS =  $(patsubst %.c,%.o,$(TESTBARRIER_SOURCES))
 
 TESTMALLOC_OBJECTS =  $(patsubst %.c,%.o,$(TESTMALLOC_SOURCES))
 
+TESTLOCKS_OBJECTS =  $(patsubst %.c,%.o,$(TESTLOCKS_SOURCES))
+
 
 # What we're building with
-CC = gcc 
+CC = gcc
 CFLAGS = -Wall
 LDFLAGS = -lpthread -lprotobuf-c
 
@@ -33,7 +37,7 @@ else
 CFLAGS += -O3 -DNDEBUG -gdwarf-3
 endif
 
-all: $(PRODUCT) 
+all: $(PRODUCT)
 
 protos: sic-message.proto
 	protoc-c --c_out=. sic-message.proto
@@ -46,6 +50,10 @@ test-barriers: $(TESTBARRIER_OBJECTS) $(GENERIC_OBJECTS)
 
 test-malloc: $(TESTMALLOC_OBJECTS) $(GENERIC_OBJECTS)
 	$(CC) $(GENERIC_OBJECTS) $(TESTMALLOC_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
+
+test-locks: $(TESTLOCKS_OBJECTS) $(GENERIC_OBJECTS)
+	$(CC) $(GENERIC_OBJECTS) $(TESTLOCKS_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
+
 
 #test-%: $(TEST%_OBJECTS) $(GENERIC_OBJECTS)
 #	$(CC) $(GENERIC_OBJECTS) $(TEST%_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
