@@ -49,12 +49,16 @@ int encode_message(uint8_t* msg, int id, int code, int value) {
   transmission.code = code;
   transmission.value = value;
   sic_logf("Encoded size: %u", transmission__get_packed_size(&transmission));
+  return encode_transmission(msg, &transmission);
+}
 
-  msg += 4;
-  int len = transmission__pack(&transmission, msg);
-  msg[len] = 0;
-  msg -= 4;
-  *msg = len;
+int encode_transmission(uint8_t *buf, Transmission *trans) {
+  buf += 4;
+  sic_logf("Encoded size: %u", transmission__get_packed_size(trans));
+  int len = transmission__pack(trans, buf);
+  buf[len] = 0;
+  buf -= 4;
+  *buf = len;
   return len + 4;
 }
 
@@ -92,6 +96,9 @@ RegionDiff memdiff(void *old, void *new, size_t length) {
     if (*op == *np) {
       run_length++;
     } else {
+      // gotta hate protobufs
+      DiffSegment tmp = DIFF_SEGMENT__INIT;
+      diffs[num_diffs] = tmp;
       diffs[num_diffs].length = run_length;
       diffs[num_diffs].new_data = *np;
       run_length = 0;
@@ -148,3 +155,5 @@ void print_diff(RegionDiff diff) {
     num_diffs++;
   }
 }
+
+

@@ -56,6 +56,7 @@ void arrived_at_barrier(barrier_id id) {
   uint8_t resp[256];
   int sid, scode, svalue;
   sic_logf("Client %d hitting barrier: %d\n", sic_id(), id);
+  diff_and_cleanup(msg, sic_id(), CLIENT_AT_BARRIER, id);
   int len = encode_message(msg, sic_id(), CLIENT_AT_BARRIER, id);
   send_packet(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
@@ -63,7 +64,6 @@ void arrived_at_barrier(barrier_id id) {
   if (scode != ACK_CLIENT_AT_BARRIER)
     sic_panic("Networking error, could not get ack from client");
   
-  diff_and_cleanup();
   while(blocked) {
     sched_yield();
   }
@@ -189,16 +189,51 @@ void register_page(void *realva, void *twinnedva) {
  * Computes the diffs, frees the locally mapped pages, and marks the
  * real page read only again.
  */
-void diff_and_cleanup() {
+void diff_and_cleanup(uint8_t *msg, client_id client, int code, int value) {
   sic_logf("About to create diffs");
+  Transmission t = TRANSMISSION__INIT;
+  t.id = client;
+  t.code = code;
+  t.value = value;
+
   memstat();
   PageInfo *w = invalid_pages;
+  int num_pages = 0;
   while(w) {
     w->diff = diff_for_page(w);
     free(w->twinned_page_addr);
     mark_read_only(w->real_page_addr, PGSIZE);
     w = w->next;
+    num_pages++;
   }
+  
+  RegionDiffProto **pages = malloc(num_pages * sizeof(RegionDiffProto *));
+  w = invalid_pages;
+  // For each diff, we want a RegionDiffProto
+  int i = 0;
+  while(w) {
+    RegionDiffProto *r = malloc(sizeof(RegionDiffProto));
+    RegionDiffProto tmp = REGION_DIFF_PROTO__INIT;
+    *r = tmp;
+    to_proto(w->diff, r);
+    pages[i] = r;
+    w = w->next;
+    i++;
+  }
+  sic_logf("max encodable size: %d", MSGMAX_SIZE);
+  sic_logf("diff encoded size: %u", transmission__get_packed_size(&t));
+  t.diff_info = pages;
+  t.n_diff_info = i;
+  encode_transmission(msg, &t);
+}
+
+void to_proto(RegionDiff r, RegionDiffProto *rp) {
+  rp->diffs = (DiffSegment **)malloc(r.num_diffs * sizeof(DiffSegment *));  
+  int i;
+  for(i = 0; i < r.num_diffs; i++) {
+    rp->diffs[i] = &r.diffs[i];
+  }
+  rp->n_diffs = r.num_diffs;
 }
 
 RegionDiff diff_for_page(PageInfo *page) {

@@ -2,7 +2,7 @@ message Transmission {
   required int32 id = 1; 
   required MessageCode code = 2;
   required int32 value = 3;
-  repeated RegionDiff2 diff_info = 4;
+  repeated RegionDiffProto diff_info = 4;
 }
 
 enum MessageCode {
@@ -16,9 +16,8 @@ enum MessageCode {
 }
 
 
-message RegionDiff2 {
-  required uint32 num_diffs = 1;
-  repeated DiffSegment diffs = 2;
+message RegionDiffProto {
+  repeated DiffSegment diffs = 1;
 }
 
 message DiffSegment {

@@ -11,7 +11,7 @@
 
 
 #define PGSIZE 4096
-#define MSGMAX_SIZE 100
+#define MSGMAX_SIZE 1024 
 // Rounding operations (efficient when n is a power of 2)
 // Round down to the nearest multiple of n
 #define ROUNDDOWN(a, n)           \
@@ -59,6 +59,8 @@ void sic_logf(const char* format, ...);
 int encode_message(uint8_t* msg, int id, int code, int value);
 int decode_message(uint8_t* msg, int* id, int* code, int* value);
 
+int encode_transmission(uint8_t *buf, Transmission *trans); 
+
 // Memdiff code 
 
 typedef struct {
@@ -73,8 +75,6 @@ typedef struct {
 
 
 RegionDiff memdiff(void *old, void *new, size_t length);
-
-RegionDiff2 memdiff2(void *old, void *new, size_t length);
 
 void applydiff(void *va, RegionDiff diff);
 
