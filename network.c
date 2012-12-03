@@ -58,6 +58,7 @@ int recv_data(int socket, uint8_t* rec, int len) {
     if (len == 0)
       return 0;
     sic_logf("recv: needs more bytes, waiting for them");
+    // Not correct...
     bytes_recv = recv(socket, rec + bytes_recv, len, 0);
   }
   return 0;

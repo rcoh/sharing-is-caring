@@ -52,9 +52,13 @@ void * alloc(size_t len) {
 
 int signal_server(message_t code, int value, message_t expected_ack) {
   uint8_t msg[MSGMAX_SIZE];
-  uint8_t resp[256];
-  int sid, scode, svalue;
   int len = encode_message(msg, sic_id(), code, value);
+  return send_message_to_server(msg, len, expected_ack);
+}
+
+int send_message_to_server(uint8_t *msg, int len, message_t expected_ack) {
+  int sid, scode, svalue;
+  uint8_t resp[256];
   sic_logf("Sending all the signals to the server\n");
   send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
@@ -72,7 +76,8 @@ void arrived_at_barrier(barrier_id id) {
   uint8_t msg[MSGMAX_SIZE];
   memset(msg, 0, MSGMAX_SIZE);
   int len = diff_and_cleanup(msg, sic_id(), CLIENT_AT_BARRIER, id);
-  signal_server(CLIENT_AT_BARRIER, id, ACK_CLIENT_AT_BARRIER);
+  send_message_to_server(msg, len, ACK_CLIENT_AT_BARRIER);
+  //signal_server(CLIENT_AT_BARRIER, id, ACK_CLIENT_AT_BARRIER);
   while(blocked) {
     sched_yield();
   }

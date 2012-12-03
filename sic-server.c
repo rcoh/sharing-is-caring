@@ -19,13 +19,12 @@ int main(int argc, char *argv[], char *evnp[]) {
 void * runserver(void * args) {
   int sid, scode, svalue;
   sic_log("Starting server ...");
-  uint8_t buffer[256];
+  uint8_t buffer[MSGMAX_SIZE];
   int listener_d = open_listener_socket();
   bind_to_port(listener_d, SERVER_PORT);
   listen(listener_d, 10);
   sic_logf("Waiting for connections from %d clients ...", NUM_CLIENTS);
   while (1) {
-    memset(buffer, 0, sizeof(buffer));
     struct sockaddr_in client_addr;
     unsigned int address_size = sizeof(client_addr);
     int connect_d = accept(listener_d, (struct sockaddr*) &client_addr, &address_size);

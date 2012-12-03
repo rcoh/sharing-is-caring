@@ -80,3 +80,6 @@ void * alloc(size_t len);
 RegionDiff diff_for_page(PageInfo *p);
 
 int diff_and_cleanup(uint8_t *msg, client_id client, int code, int value);
+
+int send_message_to_server(uint8_t *msg, int len, message_t expected_ack); 
+int signal_server(message_t code, int value, message_t expected_ack);
