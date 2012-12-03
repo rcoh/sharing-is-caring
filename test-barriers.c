@@ -15,6 +15,7 @@ int main() {
   printf("Arrived barrier 2\n");
   sic_barrier(2);
   printf("Passed barrier 2. Done\n");
+  sic_exit();
   return 0;
 }
 

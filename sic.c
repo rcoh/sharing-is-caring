@@ -2,12 +2,12 @@
 #include "sic-internals.h"
 
 
+pthread_t network_loop;
 void sic_barrier(uint32_t id) {
   arrived_at_barrier(id);
 }
 
 void sic_init() {
-  pthread_t network_loop;
   // Initiaizes all the things
   initialize_client();
 
@@ -32,6 +32,7 @@ void sic_claim(void* addr, size_t len);
 /** Allow internal state to clean itself up **/
 void sic_exit() {
   cleanup_client();
+  pthread_detach(network_loop);
 }
 
 

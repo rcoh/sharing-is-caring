@@ -43,6 +43,7 @@ void sic_log_fn(const char* fn, const char* msg) {
 }
 
 int encode_message(uint8_t* msg, int id, int code, int value) {
+  memset(msg, 0, MSGMAX_SIZE);
   Transmission transmission = TRANSMISSION__INIT;
   transmission.id = id;
   transmission.code = code;
@@ -73,6 +74,7 @@ int decode_message(uint8_t* msg, int* id, int* code, int* value) {
   *id = trans->id;
   *code = trans->code;
   *value = trans->value;
+  free(trans);
   return 0;
 }
 
@@ -106,6 +108,7 @@ RegionDiff memdiff(void *old, void *new, size_t length) {
 
   // Shrink it to what we actually need
   diffs = (DiffSegment *)realloc((void *)diffs, num_diffs * sizeof(DiffSegment));
+  printf("alloced: %p\n", diffs);
   
   RegionDiff r;
   r.diffs = diffs;
@@ -135,7 +138,10 @@ RegionDiff merge_diffs(int num_diffs, RegionDiff *r) {
   void *zero_page = malloc(PGSIZE);
   memset(new_page, 0, PGSIZE);
 
-  return memdiff(zero_page, new_page, PGSIZE);
+  RegionDiff res = memdiff(zero_page, new_page, PGSIZE);
+  free(new_page);
+  free(zero_page);
+  return res;
 }
 
 void print_diff(RegionDiff diff) {

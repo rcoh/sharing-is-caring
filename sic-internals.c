@@ -69,8 +69,9 @@ void arrived_at_barrier(barrier_id id) {
   sic_logf("[CLIENT] %d hitting barrier: %d\n", sic_id(), id);
 
   // Compute memory diff to send
-  // uint8_t msg[MSGMAX_SIZE];
-  //diff_and_cleanup(msg, sic_id(), CLIENT_AT_BARRIER, id);
+  uint8_t msg[MSGMAX_SIZE];
+  memset(msg, 0, MSGMAX_SIZE);
+  int len = diff_and_cleanup(msg, sic_id(), CLIENT_AT_BARRIER, id);
   signal_server(CLIENT_AT_BARRIER, id, ACK_CLIENT_AT_BARRIER);
   while(blocked) {
     sched_yield();
@@ -214,7 +215,7 @@ void register_page(void *realva, void *twinnedva) {
  * Computes the diffs, frees the locally mapped pages, and marks the
  * real page read only again.
  */
-void diff_and_cleanup(uint8_t *msg, client_id client, int code, int value) {
+int diff_and_cleanup(uint8_t *msg, client_id client, int code, int value) {
   sic_logf("About to create diffs");
   Transmission t = TRANSMISSION__INIT;
   t.id = client;
@@ -241,15 +242,23 @@ void diff_and_cleanup(uint8_t *msg, client_id client, int code, int value) {
     RegionDiffProto tmp = REGION_DIFF_PROTO__INIT;
     *r = tmp;
     to_proto(w->diff, r);
+    // We're done with the region diff
     pages[i] = r;
     w = w->next;
     i++;
   }
-  sic_logf("max encodable size: %d", MSGMAX_SIZE);
-  sic_logf("diff encoded size: %u", transmission__get_packed_size(&t));
   t.diff_info = pages;
   t.n_diff_info = i;
-  encode_transmission(msg, &t);
+  int len = encode_transmission(msg, &t);
+  sic_logf("diff encoded size: %u", transmission__get_packed_size(&t));
+  for ( i = 0; i < t.n_diff_info; i++ ) {
+    printf("freed: %p\n", *pages[i]->diffs);
+    free(*pages[i]->diffs);
+    free(pages[i]->diffs);
+    free(pages[i]);
+  }
+  free(pages);
+  return len;
 }
 
 void to_proto(RegionDiff r, RegionDiffProto *rp) {
@@ -282,6 +291,7 @@ void memstat() {
     RegionDiff diff = diff_for_page(w);
     sic_logf("about to print");
     print_diff(diff);
+    free(diff.diffs);
     w = w->next;
   }
 }

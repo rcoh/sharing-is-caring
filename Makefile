@@ -13,7 +13,7 @@ SERVER_SOURCES = sic-server.c
 
 # What we're building
 
-PRODUCT = protos test-barriers server test-malloc test-locks
+PRODUCT = protos test-barriers server test-malloc #test-locks
 GENERIC_OBJECTS = $(patsubst %.c,%.o,$(GENERIC_SOURCES))
 SERVER_OBJECTS = $(patsubst %.c,%.o,$(SERVER_SOURCES))
 

@@ -79,4 +79,4 @@ void * alloc(size_t len);
 /* Wrapper around memdiff */
 RegionDiff diff_for_page(PageInfo *p);
 
-void diff_and_cleanup(uint8_t *msg, client_id client, int code, int value);
+int diff_and_cleanup(uint8_t *msg, client_id client, int code, int value);
