@@ -16,6 +16,7 @@ typedef struct {
   barrier_id id;
   bool clients_arrived[NUM_CLIENTS];
   uint32_t num_clients_waiting;
+  PageInfo *invalid_pages;
 } Barrier;
 
 typedef struct {

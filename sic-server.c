@@ -34,6 +34,13 @@ void * runserver(void * args) {
 
     // Process the message
     decode_message(buffer, &sid, &scode, &svalue);
+    Transmission *t = decode_transmission(buffer);
+    if (t->n_diff_info > 0) {
+      sic_logf("We have diffs!");
+      RegionDiff r;
+      from_proto(&r, t->diff_info[0]);
+      print_diff(r);
+    }
     uint8_t msg[MSGMAX_SIZE];
     char host[1024];
     char service[24];

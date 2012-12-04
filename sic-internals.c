@@ -1,5 +1,7 @@
 #include "sic-internals.h"
 
+#define VIRT(addr) ((virt_addr) ((uintptr_t)addr - (uintptr_t)shared_base))
+#define PHYS(addr) ((phys_addr) ((uintptr_t)addr + (uintptr_t)shared_base))
 /** Global client state **/
 
 // Client ID for this client
@@ -38,7 +40,7 @@ void cleanup_client() {
 }
 
 // Currently a very stupid alloc ...
-void * alloc(size_t len) {
+phys_addr alloc(size_t len) {
   void * ret = next_free;
   len = ROUNDUP(len, PGSIZE);
   if ((next_free + len) - shared_base > SHARED_SIZE)
@@ -174,7 +176,7 @@ static void handler(int sig, siginfo_t *si, void *unused) {
     printf("mprotect failed.");
   }
   sic_logf("Cloning page");
-  register_page(failing_page, twin_page(failing_page));
+  register_page(VIRT(failing_page), twin_page(failing_page));
 }
 
 void initialize_memory_manager() {
@@ -200,7 +202,7 @@ void *twin_page(void *va) {
 }
 
 /** Appends to the head of the list of invalid pages */
-void register_page(void *realva, void *twinnedva) {
+void register_page(virt_addr realva, phys_addr twinnedva) {
   if (invalid_pages == NULL) {
     invalid_pages = (PageInfo *)malloc(sizeof(PageInfo));
   } else { 
@@ -266,17 +268,9 @@ int diff_and_cleanup(uint8_t *msg, client_id client, int code, int value) {
   return len;
 }
 
-void to_proto(RegionDiff r, RegionDiffProto *rp) {
-  rp->diffs = (DiffSegment **)malloc(r.num_diffs * sizeof(DiffSegment *));  
-  int i;
-  for(i = 0; i < r.num_diffs; i++) {
-    rp->diffs[i] = &r.diffs[i];
-  }
-  rp->n_diffs = r.num_diffs;
-}
 
 RegionDiff diff_for_page(PageInfo *page) {
-  return memdiff(page->twinned_page_addr, page->real_page_addr, PGSIZE);
+  return memdiff(page->twinned_page_addr, PHYS(page->real_page_addr), PGSIZE);
 }
 
 /** Logs the current state off memory affairs **/

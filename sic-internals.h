@@ -13,12 +13,6 @@
 #include "sic-util.h"
 #include "network.h"
 
-typedef struct __PageInfo {
-  void * real_page_addr;
-  void * twinned_page_addr;
-  RegionDiff diff;
-  struct __PageInfo *next;
-} PageInfo;
 
 /** Init / Exit Methods **/
 void initialize_client();

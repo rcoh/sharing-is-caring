@@ -63,6 +63,15 @@ int encode_transmission(uint8_t *buf, Transmission *trans) {
 
 int decode_message(uint8_t* msg, int* id, int* code, int* value) {
   // find the length. need to refactor this.
+  Transmission *trans = decode_transmission(msg);
+  *id = trans->id;
+  *code = trans->code;
+  *value = trans->value;
+  free(trans);
+  return 0;
+}
+
+Transmission *decode_transmission(uint8_t *msg) {
   int len = (size_t) *msg;
   msg += 4;
   Transmission *trans;
@@ -70,12 +79,7 @@ int decode_message(uint8_t* msg, int* id, int* code, int* value) {
   trans = transmission__unpack(NULL, len, msg);   
   if (trans == NULL)
     sic_panic("error unpacking incoming message\n");
-
-  *id = trans->id;
-  *code = trans->code;
-  *value = trans->value;
-  free(trans);
-  return 0;
+  return trans;
 }
 
 // Pointer to an array of 
@@ -142,6 +146,24 @@ RegionDiff merge_diffs(int num_diffs, RegionDiff *r) {
   free(new_page);
   free(zero_page);
   return res;
+}
+
+void to_proto(RegionDiff r, RegionDiffProto *rp) {
+  rp->diffs = (DiffSegment **)malloc(r.num_diffs * sizeof(DiffSegment *));  
+  int i;
+  for(i = 0; i < r.num_diffs; i++) {
+    rp->diffs[i] = &r.diffs[i];
+  }
+  rp->n_diffs = r.num_diffs;
+}
+
+void from_proto(RegionDiff *r, RegionDiffProto *rp) {
+  r->diffs = (DiffSegment *)malloc(rp->n_diffs * sizeof(DiffSegment));
+  int i;
+  for (i = 0; i < rp->n_diffs; i++) {
+    r->diffs[i] = *rp->diffs[i];
+  }
+  r->num_diffs = rp->n_diffs;
 }
 
 void print_diff(RegionDiff diff) {

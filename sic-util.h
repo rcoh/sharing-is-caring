@@ -30,6 +30,9 @@ typedef int client_id;
 typedef uint32_t barrier_id;
 typedef uint32_t lock_id;
 typedef uint32_t DiffGranularity;
+
+typedef void * virt_addr;
+typedef void * phys_addr;
 typedef enum {
   NO_ACK,
   CLIENT_AT_BARRIER,
@@ -75,6 +78,7 @@ int encode_message(uint8_t* msg, int id, int code, int value);
 int decode_message(uint8_t* msg, int* id, int* code, int* value);
 
 int encode_transmission(uint8_t *buf, Transmission *trans); 
+Transmission *decode_transmission(uint8_t *msg); 
 
 // Memdiff code 
 
@@ -88,6 +92,15 @@ typedef struct {
   size_t num_diffs;
 } RegionDiff;
 
+typedef struct __PageInfo {
+  virt_addr real_page_addr;
+  phys_addr twinned_page_addr;
+  RegionDiff diff;
+  struct __PageInfo *next;
+} PageInfo;
+
+void from_proto(RegionDiff *r, RegionDiffProto *rp);
+void to_proto(RegionDiff r, RegionDiffProto *rp); 
 
 RegionDiff memdiff(void *old, void *new, size_t length);
 
