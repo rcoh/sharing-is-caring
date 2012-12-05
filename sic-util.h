@@ -30,6 +30,7 @@ typedef int client_id;
 typedef uint32_t barrier_id;
 typedef uint32_t lock_id;
 typedef uint32_t DiffGranularity;
+typedef int64_t  value_t;
 
 typedef void * virt_addr;
 typedef void * phys_addr;
@@ -46,6 +47,10 @@ typedef enum {
   CLIENT_REQUEST_LOCK,
   SERVER_LOCK_ACQUIRED,
   SERVER_LOCK_NOT_ACQUIRED,
+
+  CLIENT_MALLOC_ADDR,
+  CLIENT_REQUEST_LAST_ADDR,
+  ACK_ADDRESS_RECIEVED,
 
   CLIENT_RELEASE_LOCK,
   SERVER_LOCK_RELEASED,
@@ -74,8 +79,8 @@ void sic_log(const char* msg);
 void sic_log_fn(const char* fn, const char* msg);
 void sic_logf(const char* format, ...);
 
-int encode_message(uint8_t* msg, int id, int code, int value);
-int decode_message(uint8_t* msg, int* id, int* code, int* value);
+int encode_message(uint8_t* msg, int id, int code, value_t value);
+int decode_message(uint8_t* msg, int* id, int* code, value_t* value);
 
 int encode_transmission(uint8_t *buf, Transmission *trans); 
 Transmission *decode_transmission(uint8_t *msg); 

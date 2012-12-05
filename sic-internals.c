@@ -1,7 +1,5 @@
 #include "sic-internals.h"
 
-#define VIRT(addr) ((virt_addr) ((uintptr_t)addr - (uintptr_t)shared_base))
-#define PHYS(addr) ((phys_addr) ((uintptr_t)addr + (uintptr_t)shared_base))
 /** Global client state **/
 
 // Client ID for this client
@@ -18,6 +16,13 @@ bool blocked;
 static PageInfo *invalid_pages;
 
 /** Init / Exit **/
+virt_addr VIRT(phys_addr addr) {
+  return (virt_addr) ((uintptr_t)addr - (uintptr_t)shared_base);
+}
+
+phys_addr PHYS(virt_addr addr) {
+  return (phys_addr) ((uintptr_t)addr + (uintptr_t)shared_base);
+}
 
 void initialize_client() {
   // MMAP the shared block of memory
@@ -52,19 +57,33 @@ phys_addr alloc(size_t len) {
 
 /** Synchronization **/
 
-int signal_server(message_t code, int value, message_t expected_ack) {
+int signal_server(message_t code, value_t value, message_t expected_ack) {
   uint8_t msg[MSGMAX_SIZE];
   int len = encode_message(msg, sic_id(), code, value);
   return send_message_to_server(msg, len, expected_ack);
 }
 
-int send_message_to_server(uint8_t *msg, int len, message_t expected_ack) {
-  int sid, scode, svalue;
+value_t query_server(message_t code, value_t value) {
+  uint8_t msg[MSGMAX_SIZE];
+  int len = encode_message(msg, sic_id(), code, value);
+  int sid, scode;
+  value_t svalue;
   uint8_t resp[256];
-  sic_logf("Sending all the signals to the server\n");
+  sic_logf("Sending all the signals to the server");
   send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
-  sic_logf("Got response code from server: %d\n", scode);
+  sic_logf("Got response code from server: %d", scode);
+  return svalue;
+}
+
+int send_message_to_server(uint8_t *msg, int len, message_t expected_ack) {
+  int sid, scode;
+  value_t svalue;
+  uint8_t resp[256];
+  sic_logf("Sending all the signals to the server");
+  send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
+  decode_message(resp, &sid, &scode, &svalue);
+  sic_logf("Got response code from server: %d", scode);
   if (expected_ack && scode != expected_ack)
     sic_panic("Networking error, could not get ack from server");
   return scode;
@@ -84,6 +103,15 @@ void arrived_at_barrier(barrier_id id) {
     sched_yield();
   }
 }
+
+/*void block_until_released(uint8_t *msg, int len) {
+  blocked = true;
+  send_message_to_server(msg, len, ACK_CLIENT_AT_BARRIER);
+  //signal_server(CLIENT_AT_BARRIER, id, ACK_CLIENT_AT_BARRIER);
+  while(blocked) {
+    sched_yield();
+  }
+}*/
 
 void released_from_barrier(barrier_id id) {
   assert(!blocked);
@@ -115,7 +143,8 @@ void wait_for_server() {
   uint8_t msg[MSGMAX_SIZE], resp[256];
   int len = encode_message(msg, -1, CLIENT_INIT, 0);
   send_packet(SERVER_IP, SERVER_PORT, msg, len, resp);
-  int sid, scode, svalue;
+  int sid, scode;
+  value_t svalue;
   decode_message(resp, &sid, &scode, &svalue);
   sic_client_id = svalue;
   sic_logf("[CLIENT] Initialized with id: %d\n", sic_id());
@@ -126,7 +155,8 @@ int sic_id() {
 }
 
 void *runclient(void * args) {
-  int sid, scode, svalue;
+  int sid, scode;
+  value_t svalue;
   int listener_d = open_listener_socket();
   int port = CLIENT_BASE_PORT + sic_id();
   sic_logf("Client %d beginning to listen on port %d\n", sic_id(), port);
@@ -153,7 +183,7 @@ void *runclient(void * args) {
   }
 }
 
-int dispatch(uint8_t* return_msg, int id, int code, int value) {
+int dispatch(uint8_t* return_msg, int id, int code, value_t value) {
   sic_logf("Client processing: %d %d %d\n", id, code, value);
   switch (code) {
     case SERVER_RELEASE_BARRIER:
@@ -222,7 +252,7 @@ void register_page(virt_addr realva, phys_addr twinnedva) {
  * Computes the diffs, frees the locally mapped pages, and marks the
  * real page read only again.
  */
-int diff_and_cleanup(uint8_t *msg, client_id client, int code, int value) {
+int diff_and_cleanup(uint8_t *msg, client_id client, int code, value_t value) {
   sic_logf("About to create diffs");
   Transmission t = TRANSMISSION__INIT;
   t.id = client;

@@ -6,6 +6,8 @@ static pthread_mutex_t server_lock;
 static int num_clients_connected = 0;
 static Client  clients[NUM_CLIENTS];
 
+static virt_addr last_malloced;
+
 int main(int argc, char *argv[], char *evnp[]) {
   int result;
   pthread_mutex_init(&server_lock, NULL);
@@ -17,7 +19,8 @@ int main(int argc, char *argv[], char *evnp[]) {
 }
 
 void * runserver(void * args) {
-  int sid, scode, svalue;
+  int sid, scode;
+  value_t svalue;
   sic_log("Starting server ...");
   uint8_t buffer[MSGMAX_SIZE];
   int listener_d = open_listener_socket();
@@ -57,7 +60,7 @@ void * runserver(void * args) {
   return 0;
 }
 
-int server_dispatch(uint8_t * return_msg, const char * client_ip, int id, int code, int value) {
+int server_dispatch(uint8_t * return_msg, const char * client_ip, int id, int code, value_t value) {
   sic_logf("Server processing: id: %d, type: %s, value: %d\n", id, get_message(code), value);
   client_id result;
   message_t rcode;
@@ -71,13 +74,21 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, int id, int co
       client_arrived_at_barrier((client_id) id, (barrier_id) value);
       return encode_message(return_msg, -1, ACK_CLIENT_AT_BARRIER, value);
     case CLIENT_REQUEST_LOCK:
-      sic_logf("Server attempting to acquire lock %d for %d\n", value, id);
+      sic_logf("Server attempting to acquire lock %d for %d", value, id);
       rcode = client_requests_lock(id, value);
       return encode_message(return_msg, -1, rcode, value);
     case CLIENT_RELEASE_LOCK:
-      sic_logf("Server attempting to release lock %d for %d\n", value, id);
+      sic_logf("Server attempting to release lock %d for %d", value, id);
       rcode = client_frees_lock(id, value);
       return encode_message(return_msg, -1, rcode, value);
+    case CLIENT_MALLOC_ADDR:
+      sic_logf("Client %d malloced address %d", value, id);
+      last_malloced = (virt_addr)value;
+      return encode_message(return_msg, -1, ACK_ADDRESS_RECIEVED, value);
+    case CLIENT_REQUEST_LAST_ADDR:
+      sic_logf("Client %d request last malloced address %d", value, id);
+      // TODO: handle no last_malloced
+      return encode_message(return_msg, -1, ACK_ADDRESS_RECIEVED, (value_t)last_malloced);
     default:
       sic_logf("Can't handle %d\n", code);
       return encode_message(return_msg, -1, ERROR_ALL, -1);
@@ -175,7 +186,8 @@ void release_clients(Barrier *barrier) {
 void signal_client(client_id id, message_t code, int value, message_t expected_ack) {
   uint8_t msg[MSGMAX_SIZE];
   uint8_t resp[256];
-  int cis, ccode, cvalue;
+  int cis, ccode; 
+  value_t cvalue;
   memset(msg, 0, sizeof(msg));
   memset(resp, 0, sizeof(resp));
 

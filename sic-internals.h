@@ -40,13 +40,18 @@ void * runclient(void * args);
 
 int sic_id();
 
-int dispatch(uint8_t* msg, int id, int code, int value);
+int dispatch(uint8_t* msg, int id, int code, value_t value);
 
 void mark_read_only(void *start, size_t length);
 
 void initialize_memory_manager();
 
 void to_proto(RegionDiff r, RegionDiffProto *rp);
+
+virt_addr VIRT(phys_addr a);
+phys_addr PHYS(virt_addr a);
+
+value_t query_server(message_t code, value_t value);
 
 /** 
  * Clone a page within the shared virtual address space into the local address
@@ -73,7 +78,7 @@ void * alloc(size_t len);
 /* Wrapper around memdiff */
 RegionDiff diff_for_page(PageInfo *p);
 
-int diff_and_cleanup(uint8_t *msg, client_id client, int code, int value);
+int diff_and_cleanup(uint8_t *msg, client_id client, int code, value_t value);
 
 int send_message_to_server(uint8_t *msg, int len, message_t expected_ack); 
-int signal_server(message_t code, int value, message_t expected_ack);
+int signal_server(message_t code, value_t value, message_t expected_ack);

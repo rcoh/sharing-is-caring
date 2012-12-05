@@ -1,8 +1,8 @@
 message Transmission {
   required int32 id = 1; 
   required int32 code = 2;
-  required int32 value = 3;
-  repeated RegionDiffProto diff_info = 4;
+  required int64 value = 3;
+  repeated RegionDiffProto diff_info = 5;
 }
 
 message RegionDiffProto {

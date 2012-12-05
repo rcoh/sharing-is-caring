@@ -42,7 +42,7 @@ void sic_log_fn(const char* fn, const char* msg) {
   fclose(file);
 }
 
-int encode_message(uint8_t* msg, int id, int code, int value) {
+int encode_message(uint8_t* msg, int id, int code, value_t value) {
   memset(msg, 0, MSGMAX_SIZE);
   Transmission transmission = TRANSMISSION__INIT;
   transmission.id = id;
@@ -61,7 +61,7 @@ int encode_transmission(uint8_t *buf, Transmission *trans) {
   return len + 4;
 }
 
-int decode_message(uint8_t* msg, int* id, int* code, int* value) {
+int decode_message(uint8_t* msg, int* id, int* code, value_t* value) {
   // find the length. need to refactor this.
   Transmission *trans = decode_transmission(msg);
   *id = trans->id;
