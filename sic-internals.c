@@ -289,7 +289,6 @@ int diff_and_cleanup(uint8_t *msg, client_id client, int code, value_t value) {
   int len = encode_transmission(msg, &t);
   sic_logf("diff encoded size: %u", transmission__get_packed_size(&t));
   for ( i = 0; i < t.n_diff_info; i++ ) {
-    printf("freed: %p\n", *pages[i]->diffs);
     free(*pages[i]->diffs);
     free(pages[i]->diffs);
     free(pages[i]);

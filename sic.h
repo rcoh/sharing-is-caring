@@ -11,6 +11,9 @@ void sic_exit();
 /*
  * Allocate shared memory.
  */
+
+int sic_id();
+
 void *sic_malloc(size_t size);
 
 void sic_free(void *ptr);

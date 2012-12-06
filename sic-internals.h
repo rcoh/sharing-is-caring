@@ -38,6 +38,7 @@ void wait_for_server();
 /** Run the client main loop waiting for network traffic from the server */
 void * runclient(void * args);
 
+// TODO: refactor to be nicer
 int sic_id();
 
 int dispatch(uint8_t* msg, int id, int code, value_t value);

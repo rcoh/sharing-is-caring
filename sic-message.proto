@@ -6,7 +6,8 @@ message Transmission {
 }
 
 message RegionDiffProto {
-  repeated DiffSegment diffs = 1;
+  required int64 start_address = 1;
+  repeated DiffSegment diffs = 2;
 }
 
 message DiffSegment {

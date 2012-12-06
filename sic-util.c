@@ -2,6 +2,13 @@
 #include "time.h"
 #include "assert.h"
 
+enum LOG_LEVEL {
+  DEBUG,
+  INFO
+};
+
+const int current_level = DEBUG;
+
 void sic_panic(char * msg) {
   fprintf(stderr, "%s: %s\n", msg, strerror(errno));
   exit(1);
@@ -12,12 +19,25 @@ void sic_log(const char* msg) {
 }
 
 void sic_logf(const char *fmt, ...) {
-  va_list args;
-  va_start(args,fmt);
-  fprintf(stderr, "LOG: ");
-  vfprintf(stderr, fmt, args);
-  fprintf(stderr, "\n");
-  va_end(args);
+  if (current_level == DEBUG) { 
+    va_list args;
+    va_start(args,fmt);
+    fprintf(stderr, "LOG: ");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
+    va_end(args);
+  }
+}
+
+void sic_info(const char *fmt, ...) {
+  if (current_level <= INFO) { 
+    va_list args;
+    va_start(args,fmt);
+    fprintf(stderr, "INFO: ");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
+    va_end(args);
+  }
 }
 
 void sic_log_fn(const char* fn, const char* msg) {
@@ -129,7 +149,7 @@ void apply_diff(void *page_addr, RegionDiff diff) {
   }
 }
 
-RegionDiff merge_diffs(int num_diffs, RegionDiff *r) {
+RegionDiff merge_multiple_diffs(int num_diffs, RegionDiff *r) {
   // TODO: probably shouldn't hardcode PGSIZE here
   void *new_page = malloc(PGSIZE);
   memset(new_page, 0, PGSIZE);
@@ -146,6 +166,61 @@ RegionDiff merge_diffs(int num_diffs, RegionDiff *r) {
   free(new_page);
   free(zero_page);
   return res;
+}
+
+RegionDiff merge_diffs(RegionDiff r1, RegionDiff r2) {
+  // TODO: probably shouldn't hardcode PGSIZE here
+  void *new_page = malloc(PGSIZE);
+  memset(new_page, 0, PGSIZE);
+  apply_diff(new_page, r1);
+  apply_diff(new_page, r2);
+
+  // TODO: this is inefficient...
+  void *zero_page = malloc(PGSIZE);
+  memset(new_page, 0, PGSIZE);
+
+  RegionDiff res = memdiff(zero_page, new_page, PGSIZE);
+  free(new_page);
+  free(zero_page);
+  return res;
+}
+
+/** Takes a linked list of PageInfo objects, and a set of diffs (each attached to a page).
+    For each diff object it finds the matching Page (by shared address) in PageInfo creating it if
+    necessary. Then it merges in the changes. Finally, it returns a pointer to the head PageInfo
+**/
+PageInfo *merge_multipage_diff(PageInfo *current, int n_diffinfo, RegionDiffProto **diff_info) {
+  int i;
+  for (i = 0; i < n_diffinfo; i++) {
+    PageInfo *w = current;
+    PageInfo *prev = NULL;
+    RegionDiff new_diff;
+    from_proto(&new_diff, diff_info[i]);
+    while(w) {
+      if ((uintptr_t)w->real_page_addr == diff_info[i]->start_address) {
+        sic_logf("Merging changes for page %x", w->real_page_addr);
+        w->diff = merge_diffs(w->diff, new_diff);
+        // TODO: free new_diff
+      }
+      prev = w;
+      w = w->next;
+    }
+
+    // w is null if we go through and don't find a match
+    if (w == NULL) {
+      // Page not in info, add it
+      sic_logf("Allocating new page");
+      w = calloc(1, sizeof(PageInfo));
+      if (current == NULL) {
+        current = w;
+      } else {
+        prev->next = w;
+      }
+      w->real_page_addr = (virt_addr)diff_info[i]->start_address;
+      w->diff = new_diff;
+    }
+  }
+  return current;
 }
 
 void to_proto(RegionDiff r, RegionDiffProto *rp) {

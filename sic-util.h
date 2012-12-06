@@ -78,6 +78,7 @@ void sic_panic(char * msg);
 void sic_log(const char* msg);
 void sic_log_fn(const char* fn, const char* msg);
 void sic_logf(const char* format, ...);
+void sic_info(const char *fmt, ...);
 
 int encode_message(uint8_t* msg, int id, int code, value_t value);
 int decode_message(uint8_t* msg, int* id, int* code, value_t* value);
@@ -110,6 +111,9 @@ void to_proto(RegionDiff r, RegionDiffProto *rp);
 RegionDiff memdiff(void *old, void *new, size_t length);
 
 void applydiff(void *va, RegionDiff diff);
+
+RegionDiff merge_diffs(RegionDiff r1, RegionDiff r2); 
+PageInfo *merge_multipage_diff(PageInfo *current, int n_diffinfo, RegionDiffProto **diff_info);
 
 void print_diff(RegionDiff diff);
 

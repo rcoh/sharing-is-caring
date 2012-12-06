@@ -37,13 +37,7 @@ void * runserver(void * args) {
 
     // Process the message
     decode_message(buffer, &sid, &scode, &svalue);
-    Transmission *t = decode_transmission(buffer);
-    if (t->n_diff_info > 0) {
-      sic_logf("We have diffs!");
-      RegionDiff r;
-      from_proto(&r, t->diff_info[0]);
-      print_diff(r);
-    }
+    Transmission *trans = decode_transmission(buffer);
     uint8_t msg[MSGMAX_SIZE];
     char host[1024];
     char service[24];
@@ -51,7 +45,7 @@ void * runserver(void * args) {
                 host, sizeof(host),
                 service, sizeof(service), NI_NUMERICHOST | NI_NUMERICSERV);
 
-    int response_length = server_dispatch(msg, host, sid, scode, svalue);
+    int response_length = server_dispatch(msg, host, trans);
 
     // Send back the response message
     send(connect_d, msg, response_length, 0);
@@ -60,37 +54,40 @@ void * runserver(void * args) {
   return 0;
 }
 
-int server_dispatch(uint8_t * return_msg, const char * client_ip, int id, int code, value_t value) {
+int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *transmission) {
+  int id = transmission->id, code = transmission->code; 
+  value_t value = transmission->value;
   sic_logf("Server processing: id: %d, type: %s, value: %d\n", id, get_message(code), value);
   client_id result;
   message_t rcode;
   switch(code) {
     case CLIENT_INIT:
       result = new_client(client_ip);
-      sic_logf("Server responding with id: %d", result);
+      sic_info("Server responding with id: %d", result);
       return encode_message(return_msg, -1, SERVER_INIT, result);
     case CLIENT_AT_BARRIER:
-      sic_logf("Server marking %d as at barrier %d", id, value);
-      client_arrived_at_barrier((client_id) id, (barrier_id) value);
+      sic_info("Server marking %d as at barrier %d", id, value);
+      client_arrived_at_barrier((client_id) id, (barrier_id) value, 
+        transmission->n_diff_info, transmission->diff_info);
       return encode_message(return_msg, -1, ACK_CLIENT_AT_BARRIER, value);
     case CLIENT_REQUEST_LOCK:
-      sic_logf("Server attempting to acquire lock %d for %d", value, id);
+      sic_info("Server attempting to acquire lock %d for %d", value, id);
       rcode = client_requests_lock(id, value);
       return encode_message(return_msg, -1, rcode, value);
     case CLIENT_RELEASE_LOCK:
-      sic_logf("Server attempting to release lock %d for %d", value, id);
+      sic_info("Server attempting to release lock %d for %d", value, id);
       rcode = client_frees_lock(id, value);
       return encode_message(return_msg, -1, rcode, value);
     case CLIENT_MALLOC_ADDR:
-      sic_logf("Client %d malloced address %d", value, id);
+      sic_info("Client %d malloced address %d", value, id);
       last_malloced = (virt_addr)value;
       return encode_message(return_msg, -1, ACK_ADDRESS_RECIEVED, value);
     case CLIENT_REQUEST_LAST_ADDR:
-      sic_logf("Client %d request last malloced address %d", value, id);
+      sic_info("Client %d request last malloced address. Returning %d", id, last_malloced);
       // TODO: handle no last_malloced
       return encode_message(return_msg, -1, ACK_ADDRESS_RECIEVED, (value_t)last_malloced);
     default:
-      sic_logf("Can't handle %d\n", code);
+      sic_info("Can't handle %d\n", code);
       return encode_message(return_msg, -1, ERROR_ALL, -1);
   }
   return 0;
@@ -114,7 +111,8 @@ client_id new_client(const char * client_ip) {
  * Returns 0 if we recognize the client arriving at the barrier. Error codes:
  * -E_INVALID_BARRIER if the barrier id is bogus.
  */
-int client_arrived_at_barrier(client_id client, barrier_id barrier) {
+int client_arrived_at_barrier(client_id client, barrier_id barrier, 
+                              int n_diffinfo, RegionDiffProto **diff_info) {
   if (barrier >= NUM_BARRIERS) {
     return -E_INVALID_BARRIER;
   }
@@ -122,6 +120,7 @@ int client_arrived_at_barrier(client_id client, barrier_id barrier) {
   pthread_mutex_lock(&server_lock);
   // If it's the first client to the barrier
   Barrier *b = &barriers[barrier];
+  b->invalid_pages = merge_multipage_diff(b->invalid_pages, n_diffinfo, diff_info);
   if (b->id == 0) {
     b->id = barrier;
     assert_empty_barrier(*b);

@@ -3,6 +3,7 @@
 
 
 pthread_t network_loop;
+
 void sic_barrier(uint32_t id) {
   arrived_at_barrier(id);
 }
@@ -42,7 +43,7 @@ void *sic_malloc(size_t size) {
     addr = PHYS(malloc_region);
   }
   assert(addr);
-  sic_logf("Malloc returned virtual address %x", VIRT(addr));
+  sic_info("Malloc returned virtual address %x", VIRT(addr));
   // Everyone request shared address of last allocation.
   return addr;
 }
