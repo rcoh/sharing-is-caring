@@ -8,14 +8,17 @@ int main() {
   srand(0x828);
   const size_t ARR_SIZE = 512;
   const int num_clients = 2;
+  const int CHANGE_PROB = 20;
   char *dat = sic_malloc(ARR_SIZE);
   char *ref = malloc(ARR_SIZE);
   int i;
   for (i = 0; i < ARR_SIZE; i++) {
-    int data = rand() % num_clients + 1;  
-    ref[i] = data;
-    if (sic_id() == data - 1) {
-      dat[i] = data;
+    if (rand() % CHANGE_PROB == 0) {
+      int data = rand() % num_clients + 1;  
+      ref[i] = data;
+      if (sic_id() == data - 1) {
+        dat[i] = data;
+      }
     }
   }
 
