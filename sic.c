@@ -39,7 +39,7 @@ void *sic_malloc(size_t size) {
   // TODO: reserved barrier numbers
   arrived_at_barrier(100);
   if (sic_id() != 0) {
-    virt_addr malloc_region = (virt_addr)query_server(CLIENT_REQUEST_LAST_ADDR, -1);
+    virt_addr malloc_region = (virt_addr) query_server(CLIENT_REQUEST_LAST_ADDR, -1);
     addr = PHYS(malloc_region);
   }
   assert(addr);

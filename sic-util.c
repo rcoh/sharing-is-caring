@@ -132,7 +132,7 @@ RegionDiff memdiff(void *old, void *new, size_t length) {
 
   // Shrink it to what we actually need
   diffs = (DiffSegment *)realloc((void *)diffs, num_diffs * sizeof(DiffSegment));
-  printf("alloced: %p\n", diffs);
+  sic_logf("realloced: %p\n", diffs);
   
   RegionDiff r;
   r.diffs = diffs;
@@ -177,7 +177,7 @@ RegionDiff merge_diffs(RegionDiff r1, RegionDiff r2) {
 
   // TODO: this is inefficient...
   void *zero_page = malloc(PGSIZE);
-  memset(new_page, 0, PGSIZE);
+  memset(zero_page, 0, PGSIZE);
 
   RegionDiff res = memdiff(zero_page, new_page, PGSIZE);
   free(new_page);
@@ -189,17 +189,24 @@ RegionDiff merge_diffs(RegionDiff r1, RegionDiff r2) {
     For each diff object it finds the matching Page (by shared address) in PageInfo creating it if
     necessary. Then it merges in the changes. Finally, it returns a pointer to the head PageInfo
 **/
-PageInfo *merge_multipage_diff(PageInfo *current, int n_diffinfo, RegionDiffProto **diff_info) {
+PageInfo* merge_multipage_diff(PageInfo* current, int n_diffinfo, RegionDiffProto **diff_info) {
   int i;
   for (i = 0; i < n_diffinfo; i++) {
-    PageInfo *w = current;
-    PageInfo *prev = NULL;
+    PageInfo* w = current;
+    PageInfo* prev = NULL;
     RegionDiff new_diff;
     from_proto(&new_diff, diff_info[i]);
     while(w) {
       if ((uintptr_t)w->real_page_addr == diff_info[i]->start_address) {
         sic_logf("Merging changes for page %x", w->real_page_addr);
+        sic_logf("Old:");
+        print_diff(w->diff);
+        sic_logf("New:");
+        print_diff(new_diff);
         w->diff = merge_diffs(w->diff, new_diff);
+        sic_logf("Resultant diff:");
+        print_diff(w->diff);
+        break;
         // TODO: free new_diff
       }
       prev = w;
@@ -209,7 +216,7 @@ PageInfo *merge_multipage_diff(PageInfo *current, int n_diffinfo, RegionDiffProt
     // w is null if we go through and don't find a match
     if (w == NULL) {
       // Page not in info, add it
-      sic_logf("Allocating new page");
+      sic_logf("Allocating new page @ [0x%x]", diff_info[i]->start_address);
       w = calloc(1, sizeof(PageInfo));
       if (current == NULL) {
         current = w;
@@ -221,6 +228,56 @@ PageInfo *merge_multipage_diff(PageInfo *current, int n_diffinfo, RegionDiffProt
     }
   }
   return current;
+}
+
+/** Packages up a PageInfo into a network message to send over the wire. **/
+int package_pageinfo(uint8_t *msg,
+                     client_id client,
+                     int code,
+                     value_t value,
+                     PageInfo * all_pages) {
+  Transmission t = TRANSMISSION__INIT;
+  t.id = client;
+  t.code = code;
+  t.value = value;
+
+  PageInfo *w = all_pages;
+  int num_pages = 0;
+  while(w) {
+    w = w->next;
+    num_pages++;
+  }
+
+  // TODO jolynch: Abstract this even further so we don't have
+  // to construct the RegionDiffProto every time we talk to clients
+  RegionDiffProto **pages = malloc(num_pages * sizeof(RegionDiffProto *));
+  w = all_pages;
+  // For each diff, we want a RegionDiffProto
+  int i = 0;
+  while(w) {
+    RegionDiffProto *r = malloc(sizeof(RegionDiffProto));
+    RegionDiffProto tmp = REGION_DIFF_PROTO__INIT;
+    *r = tmp;
+    to_proto(w->diff, r);
+    r->start_address = w->real_page_addr;
+    // We're done with the region diff
+    pages[i] = r;
+    w = w->next;
+    i++;
+  }
+  t.diff_info = pages;
+  t.n_diff_info = i;
+  int len = encode_transmission(msg, &t);
+  sic_logf("diff encoded size: %u", transmission__get_packed_size(&t));
+  /* TODO jolynch: stop leaking memory all over the gorram place
+   * but don't segfault in server code either ... basically stop sucking */ 
+  for ( i = 0; i < t.n_diff_info; i++ ) {
+    //free(*pages[i]->diffs);
+    free(pages[i]->diffs);
+    free(pages[i]);
+  }
+  free(pages);
+  return len;
 }
 
 void to_proto(RegionDiff r, RegionDiffProto *rp) {
@@ -242,7 +299,6 @@ void from_proto(RegionDiff *r, RegionDiffProto *rp) {
 }
 
 void print_diff(RegionDiff diff) {
-  sic_logf("Printing Diff.");
   sic_logf("\tDiff contains %d components", diff.num_diffs);
   sic_logf("\tDiff contents: ");
   DiffSegment *cur = diff.diffs;
@@ -251,6 +307,24 @@ void print_diff(RegionDiff diff) {
     sic_logf("\t\t%d Unmodified word -> %x.", 
         cur[num_diffs].length, cur[num_diffs].new_data);
     num_diffs++;
+  }
+}
+
+/** Logs the current state off memory affairs **/
+void print_memstat(PageInfo * pages) {
+  sic_logf(" ----- Computing memstat ---- ");
+  PageInfo *w = pages;
+  int num_pages = 0;
+  while(w) {
+    num_pages++; 
+    w = w->next;
+  }
+  sic_logf("Num cloned pages: %d", num_pages);
+  w = pages;
+  while(w) {
+    sic_logf("Base address: [0x%x]", w->real_page_addr);
+    print_diff(w->diff);
+    w = w->next;
   }
 }
 

@@ -110,12 +110,17 @@ void to_proto(RegionDiff r, RegionDiffProto *rp);
 
 RegionDiff memdiff(void *old, void *new, size_t length);
 
-void applydiff(void *va, RegionDiff diff);
+void apply_diff(void *va, RegionDiff diff);
 
 RegionDiff merge_diffs(RegionDiff r1, RegionDiff r2); 
-PageInfo *merge_multipage_diff(PageInfo *current, int n_diffinfo, RegionDiffProto **diff_info);
+PageInfo* merge_multipage_diff(PageInfo *current, int n_diffinfo, RegionDiffProto **diff_info);
+
+int package_pageinfo(uint8_t *msg, client_id client, int code, value_t value, PageInfo * pages);
+
+
 
 void print_diff(RegionDiff diff);
+void print_memstat(PageInfo * pages);
 
 const char* get_message(message_t message);
 

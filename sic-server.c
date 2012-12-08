@@ -184,28 +184,42 @@ void release_clients(Barrier *barrier) {
 
 void signal_client(client_id id, message_t code, int value, message_t expected_ack) {
   uint8_t msg[MSGMAX_SIZE];
-  uint8_t resp[256];
-  int cis, ccode; 
-  value_t cvalue;
   memset(msg, 0, sizeof(msg));
+
+  int len = encode_message(msg, -1, code, value);
+  send_message_to_client(id, msg, len, expected_ack);
+}
+
+int send_message_to_client(client_id id, uint8_t *msg, int len, message_t expected_ack) {
+  int cid, ccode;
+  value_t cvalue;
+  uint8_t resp[256];
   memset(resp, 0, sizeof(resp));
 
   sic_logf("Sending message to %s on port %d\n", clients[id].host, clients[id].port);
-
-  int len = encode_message(msg, -1, code, value);
   send_message(clients[id].host, clients[id].port, msg, len, resp);
-  decode_message(resp, &cis, &ccode, &cvalue);
+  decode_message(resp, &cid, &ccode, &cvalue);
   if (expected_ack && ccode != expected_ack)
     sic_panic("Did not receive correct ack from client");
-
+  sic_logf("Got response code from client: %d", ccode);
+  return ccode;
 }
-
 
 void broadcast_barrier_release(barrier_id id) {
   int i;
+  sic_logf("[SERVER] Packaging diff for barrier %i", id);
+  PageInfo * bpages = barriers[id].invalid_pages;
+
+  if (bpages)
+    print_memstat(barriers[id].invalid_pages);
+
   for(i = 0; i < NUM_CLIENTS; i++) {
+    uint8_t msg[MSGMAX_SIZE];
+    memset(msg, 0, sizeof(msg));
+    sic_logf("Packaging current diff to send to client # %i", i);
+    int len = package_pageinfo(msg, i, SERVER_RELEASE_BARRIER, id, bpages);
     sic_logf("Sending barrier release message to %s on port %d\n", clients[i].host, clients[i].port);
-    signal_client(i, SERVER_RELEASE_BARRIER, id, ACK_RELEASE_BARRIER);
+    send_message_to_client(i, msg, len, ACK_RELEASE_BARRIER);
   }
 }
 

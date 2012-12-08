@@ -189,7 +189,6 @@ int dispatch(uint8_t* return_msg, int id, int code, value_t value) {
     case SERVER_RELEASE_BARRIER:
       released_from_barrier((barrier_id) value);
       return encode_message(return_msg, sic_id(), ACK_RELEASE_BARRIER, value);
-      break;
     default:
       sic_logf("Can't handle code: %d\n", code);
       return -1;
@@ -235,7 +234,7 @@ void *twin_page(void *va) {
 void register_page(virt_addr realva, phys_addr twinnedva) {
   if (invalid_pages == NULL) {
     invalid_pages = (PageInfo *)malloc(sizeof(PageInfo));
-  } else { 
+  } else {
     PageInfo *new = (PageInfo *)malloc(sizeof(PageInfo));
     new->next = invalid_pages;
     invalid_pages = new;
@@ -243,23 +242,18 @@ void register_page(virt_addr realva, phys_addr twinnedva) {
   invalid_pages->real_page_addr = realva;
   invalid_pages->twinned_page_addr = twinnedva;
   invalid_pages->diff.num_diffs = -1;
-  
+
   invalid_pages->next = NULL;
   sic_logf("Registered %p cloned at %p", realva, twinnedva);
 }
 
-/* 
+/*
  * Computes the diffs, frees the locally mapped pages, and marks the
  * real page read only again.
  */
 int diff_and_cleanup(uint8_t *msg, client_id client, int code, value_t value) {
   sic_logf("About to create diffs");
-  Transmission t = TRANSMISSION__INIT;
-  t.id = client;
-  t.code = code;
-  t.value = value;
 
-  memstat();
   PageInfo *w = invalid_pages;
   int num_pages = 0;
   while(w) {
@@ -269,57 +263,13 @@ int diff_and_cleanup(uint8_t *msg, client_id client, int code, value_t value) {
     w = w->next;
     num_pages++;
   }
-  
-  RegionDiffProto **pages = malloc(num_pages * sizeof(RegionDiffProto *));
-  w = invalid_pages;
-  // For each diff, we want a RegionDiffProto
-  int i = 0;
-  while(w) {
-    RegionDiffProto *r = malloc(sizeof(RegionDiffProto));
-    RegionDiffProto tmp = REGION_DIFF_PROTO__INIT;
-    *r = tmp;
-    to_proto(w->diff, r);
-    // We're done with the region diff
-    pages[i] = r;
-    w = w->next;
-    i++;
-  }
-  t.diff_info = pages;
-  t.n_diff_info = i;
-  int len = encode_transmission(msg, &t);
-  sic_logf("diff encoded size: %u", transmission__get_packed_size(&t));
-  for ( i = 0; i < t.n_diff_info; i++ ) {
-    free(*pages[i]->diffs);
-    free(pages[i]->diffs);
-    free(pages[i]);
-  }
-  free(pages);
-  return len;
+  print_memstat(invalid_pages);
+  sic_logf("Packaging current diff to send to server");
+  return package_pageinfo(msg, client, code, value, invalid_pages);
 }
-
 
 RegionDiff diff_for_page(PageInfo *page) {
   return memdiff(page->twinned_page_addr, PHYS(page->real_page_addr), PGSIZE);
 }
 
-/** Logs the current state off memory affairs **/
-void memstat() {
-  sic_logf(" ----- Computing memstat ---- ");
-  PageInfo *w = invalid_pages;
-  int num_pages = 0;
-  while(w) {
-    num_pages++; 
-    w = w->next;
-  }
-  sic_logf("Num cloned pages: %d", num_pages);
-  w = invalid_pages;
-  while(w) {
-    sic_logf("about to make diff");
-    // The "real" page contains the new content
-    RegionDiff diff = diff_for_page(w);
-    sic_logf("about to print");
-    print_diff(diff);
-    free(diff.diffs);
-    w = w->next;
-  }
-}
+

@@ -36,7 +36,7 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *
 /** Called by network code when the server gets new client. */
 int client_arrived_at_barrier(client_id client, barrier_id barrier, 
                               int n_diffinfo, RegionDiffProto **diff_info);
-                              
+
 
 /** Called by network code when client requests a lock. */
 message_t client_requests_lock(client_id client, lock_id lock);
@@ -77,4 +77,10 @@ void assert_empty_barrier(Barrier b);
 void assert_full_barrier(Barrier b);
 
 void clear_barrier(Barrier *b);
+
+/** Networking Convenience Methods */
+
+void signal_client(client_id id, message_t code, int value, message_t expected_ack);
+int send_message_to_client(client_id id, uint8_t *msg, int len, message_t expected_ack);
+
 #endif
