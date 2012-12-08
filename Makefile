@@ -9,17 +9,21 @@ TESTBARRIER_SOURCES = test-barriers.c
 
 TESTMALLOC_SOURCES = test-malloc.c
 
+TESTMALLOC2_SOURCES = test-malloc2.c
+
 SERVER_SOURCES = sic-server.c 
 
 # What we're building
 
-PRODUCT = protos test-barriers server test-malloc test-locks
+PRODUCT = protos test-barriers server test-malloc test-locks test-malloc2
 GENERIC_OBJECTS = $(patsubst %.c,%.o,$(GENERIC_SOURCES))
 SERVER_OBJECTS = $(patsubst %.c,%.o,$(SERVER_SOURCES))
 
 TESTBARRIER_OBJECTS =  $(patsubst %.c,%.o,$(TESTBARRIER_SOURCES))
 
 TESTMALLOC_OBJECTS =  $(patsubst %.c,%.o,$(TESTMALLOC_SOURCES))
+
+TESTMALLOC2_OBJECTS =  $(patsubst %.c,%.o,$(TESTMALLOC2_SOURCES))
 
 TESTLOCKS_OBJECTS =  $(patsubst %.c,%.o,$(TESTLOCKS_SOURCES))
 
@@ -49,6 +53,9 @@ test-barriers: $(TESTBARRIER_OBJECTS) $(GENERIC_OBJECTS)
 	$(CC) $(GENERIC_OBJECTS) $(TESTBARRIER_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
 test-malloc: $(TESTMALLOC_OBJECTS) $(GENERIC_OBJECTS)
+	$(CC) $(GENERIC_OBJECTS) $(TESTMALLOC_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
+
+test-malloc2: $(TESTMALLOC2_OBJECTS) $(GENERIC_OBJECTS)
 	$(CC) $(GENERIC_OBJECTS) $(TESTMALLOC_OBJECTS) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@
 
 test-locks: $(TESTLOCKS_OBJECTS) $(GENERIC_OBJECTS)
