@@ -69,10 +69,10 @@ value_t query_server(message_t code, value_t value) {
   int sid, scode;
   value_t svalue;
   uint8_t resp[256];
-  sic_logf("Sending all the signals to the server");
+  sic_debug("Sending all the signals to the server");
   send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
-  sic_logf("Got response code from server: %d", scode);
+  sic_debug("Got response code from server: %d", scode);
   return svalue;
 }
 
@@ -80,10 +80,10 @@ int send_message_to_server(uint8_t *msg, int len, message_t expected_ack) {
   int sid, scode;
   value_t svalue;
   uint8_t resp[256];
-  sic_logf("Sending all the signals to the server");
+  sic_debug("Sending all the signals to the server");
   send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
-  sic_logf("Got response code from server: %d", scode);
+  sic_debug("Got response code from server: %d", scode);
   if (expected_ack && scode != expected_ack)
     sic_panic("Networking error, could not get ack from server");
   return scode;
@@ -91,7 +91,7 @@ int send_message_to_server(uint8_t *msg, int len, message_t expected_ack) {
 
 void arrived_at_barrier(barrier_id id) {
   blocked = true;
-  sic_logf("[CLIENT] %d hitting barrier: %d\n", sic_id(), id);
+  sic_debug("[CLIENT] %d hitting barrier: %d", sic_id(), id);
 
   // Compute memory diff to send
   uint8_t msg[MSGMAX_SIZE];
@@ -104,49 +104,23 @@ void arrived_at_barrier(barrier_id id) {
   }
 }
 
-/*void block_until_released(uint8_t *msg, int len) {
-  blocked = true;
-  send_message_to_server(msg, len, ACK_CLIENT_AT_BARRIER);
-  //signal_server(CLIENT_AT_BARRIER, id, ACK_CLIENT_AT_BARRIER);
-  while(blocked) {
-    sched_yield();
-  }
-}*/
-
 void sync_pages(int n_diffinfo, RegionDiffProto** diff_info) {
   int i;
   for (i = 0; i < n_diffinfo; i++) {
     RegionDiff new_diff;
     from_proto(&new_diff, diff_info[i]);
-    sic_logf("Told to apply diff");
+    sic_debug("Told to apply diff");
     print_diff(new_diff);
-    sic_logf("Applying diff to [0x%x]", PHYS((virt_addr)(intptr_t)diff_info[i]->start_address));
-    apply_diff(PHYS((virt_addr)(intptr_t)diff_info[i]->start_address), new_diff);
+    sic_debug("Applying diff to [0x%x]", PHYS((virt_addr)(intptr_t)diff_info[i]->start_address));
+    apply_diff(PHYS((virt_addr)(intptr_t)diff_info[i]->start_address), new_diff, false);
   }
 }
 
 void released_from_barrier(barrier_id id, int n_diffinfo, RegionDiffProto** diff_info) {
   assert(!blocked);
   sync_pages(n_diffinfo, diff_info);
-  sic_logf("[CLIENT] %d released from barrier %d",sic_id(), id);
+  sic_debug("[CLIENT] %d released from barrier %d",sic_id(), id);
   blocked = false;
-}
-
-void acquire_lock(lock_id lock) {
- while(signal_server(CLIENT_REQUEST_LOCK, lock, NO_ACK) == SERVER_LOCK_NOT_ACQUIRED) {
-   sched_yield();
- }
- sic_logf("[CLIENT] %d acquired lock %d", sic_id(), lock);
-}
-
-void release_lock(lock_id lock) {
- int code = signal_server(CLIENT_RELEASE_LOCK, lock, NO_ACK);
- if (code == SERVER_LOCK_NOT_RELEASED) {
-   sic_logf("[CLIENT] Could not release lock %d because %d never acquired it", lock, sic_id());
- } else {
-   sic_logf("[CLIENT] Released lock %d held by %d", lock, sic_id());
- }
- // diff and cleanup!?
 }
 
 /** Networking **/
@@ -160,7 +134,7 @@ void wait_for_server() {
   value_t svalue;
   decode_message(resp, &sid, &scode, &svalue);
   sic_client_id = svalue;
-  sic_logf("[CLIENT] Initialized with id: %d\n", sic_id());
+  sic_debug("[CLIENT] Initialized with id: %d\n", sic_id());
 }
 
 int sic_id() {
@@ -172,7 +146,7 @@ void *runclient(void * args) {
   value_t svalue;
   int listener_d = open_listener_socket();
   int port = CLIENT_BASE_PORT + sic_id();
-  sic_logf("Client %d beginning to listen on port %d\n", sic_id(), port);
+  sic_debug("Client %d beginning to listen on port %d\n", sic_id(), port);
   uint8_t buffer[MSGMAX_SIZE];
   bind_to_port(listener_d, port); 
   listen(listener_d, 10);
@@ -200,14 +174,14 @@ void *runclient(void * args) {
 int dispatch(uint8_t* return_msg, Transmission* transmission) {
   int id = transmission->id, code = transmission->code; 
   value_t value = transmission->value;
-  sic_logf("[CLIENT] processing: id: %d, type: %s, value: %d\n", id, get_message(code), value);
+  sic_debug("[CLIENT] processing: id: %d, type: %s, value: %d\n", id, get_message(code), value);
 
   switch (code) {
     case SERVER_RELEASE_BARRIER:
       released_from_barrier((barrier_id) value, transmission->n_diff_info, transmission->diff_info);
       return encode_message(return_msg, sic_id(), ACK_RELEASE_BARRIER, value);
     default:
-      sic_logf("Can't handle code: %d\n", code);
+      sic_debug("Can't handle code: %d\n", code);
       return -1;
   }
 }
@@ -215,13 +189,14 @@ int dispatch(uint8_t* return_msg, Transmission* transmission) {
 /** Memory Management **/
 
 static void handler(int sig, siginfo_t *si, void *unused) {
-  sic_logf("Got SIGSEGV at address: 0x%lx",(long) si->si_addr);
-  sic_logf("Marking it writeable");
+  sic_debug("Got SIGSEGV at address: 0x%lx",(long) si->si_addr);
+  sic_debug("Marking it writeable");
   void * failing_page = ROUNDDOWN(si->si_addr, PGSIZE);
   if(mprotect(failing_page, PGSIZE, PROT_READ | PROT_WRITE) < 0) {
     printf("mprotect failed.");
   }
-  sic_logf("Cloning page");
+  sic_debug("Cloning page");
+  memset(failing_page, 0, PGSIZE);
   register_page(VIRT(failing_page), twin_page(failing_page));
 }
 
@@ -261,7 +236,7 @@ void register_page(virt_addr realva, phys_addr twinnedva) {
   invalid_pages->diff.num_diffs = -1;
 
   invalid_pages->next = NULL;
-  sic_logf("Registered %p cloned at %p", realva, twinnedva);
+  sic_debug("Registered %p cloned at %p", realva, twinnedva);
 }
 
 /*
@@ -269,7 +244,7 @@ void register_page(virt_addr realva, phys_addr twinnedva) {
  * real page read only again.
  */
 int diff_and_cleanup(uint8_t *msg, client_id client, int code, value_t value) {
-  sic_logf("About to create diffs");
+  sic_debug("About to create diffs");
 
   PageInfo *w = invalid_pages;
   int num_pages = 0;
@@ -281,7 +256,7 @@ int diff_and_cleanup(uint8_t *msg, client_id client, int code, value_t value) {
     num_pages++;
   }
   print_memstat(invalid_pages);
-  sic_logf("Packaging current diff to send to server");
+  sic_debug("Packaging current diff to send to server");
   return package_pageinfo(msg, client, code, value, invalid_pages);
 }
 

@@ -1,12 +1,6 @@
 #include "network.h"
 #include "sic-util.h"
 
-/*
-int main(int argc, char * argv[]) {
-  runserver(argc, argv);
-}
-*/
-
 void bind_to_port(int socket, int port) {
   struct sockaddr_in name;
   name.sin_family = PF_INET;
@@ -44,42 +38,43 @@ int recv_data(int socket, uint8_t* rec, int len) {
   total_bytes_recv += last_bytes_recv;
   //char * repr;
   while (total_bytes_recv < len && last_bytes_recv != 0) {
-    sic_logf("recv: %d/%d", rec, total_bytes_recv, len);
+    sic_debug("recv: %d/%d", rec, total_bytes_recv, len);
     if (rec[total_bytes_recv] == '\0') {
-      sic_logf("Found null termination after %d bytes", total_bytes_recv);
-      return 0;
+      sic_debug("Found null termination after %d bytes", total_bytes_recv);
+      break;
     }
     if (last_bytes_recv < 0)
       return last_bytes_recv;
     if (total_bytes_recv == len)
-      return 0;
-    sic_logf("recv: needs more bytes, waiting for them");
+      break;
+    sic_debug("recv: needs more bytes, waiting for them");
     last_bytes_recv = recv(socket, rec + total_bytes_recv, len - total_bytes_recv, 0);
     total_bytes_recv += last_bytes_recv;
   }
   assert(total_bytes_recv < len);
-  return 0;
+  sic_info("Ran out of space!");
+  return total_bytes_recv;
 }
 
 int send_message(const char* ip, int port, const uint8_t* msg, int len, uint8_t* rec) {
-  sic_logf("--------------------------------------------------------------------------------");
+  sic_debug("--------------------------------------------------------------------------------");
   char tran_string[50];
   get_transmission(tran_string, msg);
-  sic_logf("Trying to send [%35s] to [%s] on port [%d] with length [%d]", tran_string, ip, port, len);
+  sic_debug("Trying to send [%35s] to [%s] on port [%d] with length [%d]", tran_string, ip, port, len);
   int socket = open_socket(ip, port);
   int result = send(socket, msg, len, 0);
   if (result < 0)
     fprintf(stderr, "Could not send packet\n");
-  sic_logf("Trying to receive response");
+  sic_debug("Trying to receive response");
   result = recv_data(socket, rec, 255);
-  sic_logf("Received response");
+  sic_debug("Received response. %d bytes", result);
   close(socket);
   return result;
 }
 
 int send_packet(const char* ip, int port, const uint8_t* msg, int len, uint8_t* rec) {
   int socket = open_socket(ip, port);
-  sic_logf("Trying to send [%s] to [%s] on port [%d]\n", msg, ip, port);
+  sic_debug("Trying to send [%s] to [%s] on port [%d]\n", msg, ip, port);
   int result = send(socket, msg, len + 1, 0);
   if (result < 0)
     fprintf(stderr, "Could not send packet, well fuck\n");

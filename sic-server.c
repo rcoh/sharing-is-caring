@@ -26,7 +26,7 @@ void * runserver(void * args) {
   int listener_d = open_listener_socket();
   bind_to_port(listener_d, SERVER_PORT);
   listen(listener_d, 10);
-  sic_logf("Waiting for connections from %d clients ...", NUM_CLIENTS);
+  sic_debug("Waiting for connections from %d clients ...", NUM_CLIENTS);
   while (1) {
     struct sockaddr_in client_addr;
     unsigned int address_size = sizeof(client_addr);
@@ -57,7 +57,7 @@ void * runserver(void * args) {
 int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *transmission) {
   int id = transmission->id, code = transmission->code; 
   value_t value = transmission->value;
-  sic_logf("Server processing: id: %d, type: %s, value: %d\n", id, get_message(code), value);
+  sic_debug("Server processing: id: %d, type: %s, value: %d\n", id, get_message(code), value);
   client_id result;
   message_t rcode;
   switch(code) {
@@ -196,18 +196,18 @@ int send_message_to_client(client_id id, uint8_t *msg, int len, message_t expect
   uint8_t resp[256];
   memset(resp, 0, sizeof(resp));
 
-  sic_logf("Sending message to %s on port %d\n", clients[id].host, clients[id].port);
+  sic_debug("Sending message to %s on port %d\n", clients[id].host, clients[id].port);
   send_message(clients[id].host, clients[id].port, msg, len, resp);
   decode_message(resp, &cid, &ccode, &cvalue);
   if (expected_ack && ccode != expected_ack)
     sic_panic("Did not receive correct ack from client");
-  sic_logf("Got response code from client: %d", ccode);
+  sic_debug("Got response code from client: %d", ccode);
   return ccode;
 }
 
 void broadcast_barrier_release(barrier_id id) {
   int i;
-  sic_logf("[SERVER] Packaging diff for barrier %i", id);
+  sic_debug("[SERVER] Packaging diff for barrier %i", id);
   PageInfo * bpages = barriers[id].invalid_pages;
 
   if (bpages)
@@ -216,9 +216,9 @@ void broadcast_barrier_release(barrier_id id) {
   for(i = 0; i < NUM_CLIENTS; i++) {
     uint8_t msg[MSGMAX_SIZE];
     memset(msg, 0, sizeof(msg));
-    sic_logf("Packaging current diff to send to client # %i", i);
+    sic_debug("Packaging current diff to send to client # %i", i);
     int len = package_pageinfo(msg, i, SERVER_RELEASE_BARRIER, id, bpages);
-    sic_logf("Sending barrier release message to %s on port %d\n", clients[i].host, clients[i].port);
+    sic_debug("Sending barrier release message to %s on port %d\n", clients[i].host, clients[i].port);
     send_message_to_client(i, msg, len, ACK_RELEASE_BARRIER);
   }
 }

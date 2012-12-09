@@ -13,6 +13,7 @@ int main() {
   char *ref = malloc(ARR_SIZE);
   int i;
   for (i = 0; i < ARR_SIZE; i++) {
+    ref[i] = 0;
     if (rand() % CHANGE_PROB == 0) {
       int data = rand() % num_clients + 1;  
       ref[i] = data;

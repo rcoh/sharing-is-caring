@@ -16,12 +16,21 @@ void sic_init() {
   pthread_create(&network_loop, NULL, runclient, NULL);
 }
 
-void sic_lock(lock_id id) {
-  acquire_lock(id);
+void sic_lock(lock_id lock) {
+  while(signal_server(CLIENT_REQUEST_LOCK, lock, NO_ACK) == SERVER_LOCK_NOT_ACQUIRED) {
+   sched_yield();
+  }
+  sic_debug("[CLIENT] %d acquired lock %d", sic_id(), lock);
 }
 
 void sic_unlock(lock_id id) {
-  release_lock(id);
+ int code = signal_server(CLIENT_RELEASE_LOCK, id, NO_ACK);
+ if (code == SERVER_LOCK_NOT_RELEASED) {
+   sic_debug("[CLIENT] Could not release lock %d because %d never acquired it", id, sic_id());
+ } else {
+   sic_debug("[CLIENT] Released lock %d held by %d", id, sic_id());
+ }
+ // diff and cleanup!?
 }
 
 /** 
@@ -47,8 +56,6 @@ void *sic_malloc(size_t size) {
   // Everyone request shared address of last allocation.
   return addr;
 }
-
-void sic_claim(void* addr, size_t len);
 
 /** Allow internal state to clean itself up **/
 void sic_exit() {

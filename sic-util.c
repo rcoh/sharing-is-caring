@@ -11,6 +11,7 @@ const int current_level = DEBUG;
 
 void sic_panic(char * msg) {
   fprintf(stderr, "%s: %s\n", msg, strerror(errno));
+  fprintf(stderr, "--------------PANCIC EXITING------------");
   exit(1);
 }
 
@@ -18,7 +19,7 @@ void sic_log(const char* msg) {
   sic_log_fn(NULL, msg);
 }
 
-void sic_logf(const char *fmt, ...) {
+void sic_debug(const char *fmt, ...) {
   if (current_level == DEBUG) { 
     va_list args;
     va_start(args,fmt);
@@ -73,7 +74,7 @@ int encode_message(uint8_t* msg, int id, int code, value_t value) {
 
 int encode_transmission(uint8_t *buf, Transmission *trans) {
   buf += 4;
-  sic_logf("Encoded size: %u", transmission__get_packed_size(trans));
+  sic_debug("Encoded size: %u", transmission__get_packed_size(trans));
   int len = transmission__pack(trans, buf);
   buf[len] = '\0';
   buf -= 4;
@@ -132,7 +133,7 @@ RegionDiff memdiff(void *old, void *new, size_t length) {
 
   // Shrink it to what we actually need
   diffs = (DiffSegment *)realloc((void *)diffs, num_diffs * sizeof(DiffSegment));
-  sic_logf("realloced: %p\n", diffs);
+  sic_debug("realloced: %p\n", diffs);
   
   RegionDiff r;
   r.diffs = diffs;
@@ -140,12 +141,16 @@ RegionDiff memdiff(void *old, void *new, size_t length) {
   return r;
 }
 
-void apply_diff(void *page_addr, RegionDiff diff) {
+void apply_diff(void *page_addr, RegionDiff diff, bool use_or) {
   DiffGranularity *w = page_addr;
   int i;
   for (i = 0; i < diff.num_diffs; i++) {
     w += diff.diffs[i].length;
-    *w = diff.diffs[i].new_data;
+    if (!use_or) {
+      *w = diff.diffs[i].new_data;
+    } else {
+      *w |= diff.diffs[i].new_data;
+    }
     w++;
   }
 }
@@ -156,7 +161,7 @@ RegionDiff merge_multiple_diffs(int num_diffs, RegionDiff *r) {
   memset(new_page, 0, PGSIZE);
   int i;
   for (i = 0; i < num_diffs; i++) {
-    apply_diff(new_page, r[i]);
+    apply_diff(new_page, r[i], true);
   }
 
   // TODO: this is inefficient...
@@ -173,8 +178,8 @@ RegionDiff merge_diffs(RegionDiff r1, RegionDiff r2) {
   // TODO: probably shouldn't hardcode PGSIZE here
   void *new_page = malloc(PGSIZE);
   memset(new_page, 0, PGSIZE);
-  apply_diff(new_page, r1);
-  apply_diff(new_page, r2);
+  apply_diff(new_page, r1, true);
+  apply_diff(new_page, r2, true);
 
   // TODO: this is inefficient...
   void *zero_page = malloc(PGSIZE);
@@ -199,13 +204,13 @@ PageInfo* merge_multipage_diff(PageInfo* current, int n_diffinfo, RegionDiffProt
     from_proto(&new_diff, diff_info[i]);
     while(w) {
       if ((uintptr_t)w->real_page_addr == diff_info[i]->start_address) {
-        sic_logf("Merging changes for page %x", w->real_page_addr);
-        sic_logf("Old:");
+        sic_debug("Merging changes for page %x", w->real_page_addr);
+        sic_debug("Old:");
         print_diff(w->diff);
-        sic_logf("New:");
+        sic_debug("New:");
         print_diff(new_diff);
         w->diff = merge_diffs(w->diff, new_diff);
-        sic_logf("Resultant diff:");
+        sic_debug("Resultant diff:");
         print_diff(w->diff);
         break;
         // TODO: free new_diff
@@ -217,7 +222,7 @@ PageInfo* merge_multipage_diff(PageInfo* current, int n_diffinfo, RegionDiffProt
     // w is null if we go through and don't find a match
     if (w == NULL) {
       // Page not in info, add it
-      sic_logf("Allocating new page @ [0x%x]", diff_info[i]->start_address);
+      sic_debug("Allocating new page @ [0x%x]", diff_info[i]->start_address);
       w = calloc(1, sizeof(PageInfo));
       if (current == NULL) {
         current = w;
@@ -269,7 +274,7 @@ int package_pageinfo(uint8_t *msg,
   t.diff_info = pages;
   t.n_diff_info = i;
   int len = encode_transmission(msg, &t);
-  sic_logf("diff encoded size: %u", transmission__get_packed_size(&t));
+  sic_debug("diff encoded size: %u", transmission__get_packed_size(&t));
   /* TODO jolynch: stop leaking memory all over the gorram place
    * but don't segfault in server code either ... basically stop sucking */ 
   for ( i = 0; i < t.n_diff_info; i++ ) {
@@ -300,30 +305,32 @@ void from_proto(RegionDiff *r, RegionDiffProto *rp) {
 }
 
 void print_diff(RegionDiff diff) {
-  sic_logf("\tDiff contains %d components", diff.num_diffs);
-  sic_logf("\tDiff contents: ");
+  sic_debug("\tDiff contains %d components", diff.num_diffs);
+  sic_debug("\tDiff contents: ");
   DiffSegment *cur = diff.diffs;
   int num_diffs = 0;
+  int cur_len = 0;
   while(num_diffs < diff.num_diffs) {
-    sic_logf("\t\t%d Unmodified word -> %x.", 
-        cur[num_diffs].length, cur[num_diffs].new_data);
+    sic_debug("\t\t[Loc: %d] %d Unmodified word -> \t0x%08x.", 
+        cur_len, cur[num_diffs].length, cur[num_diffs].new_data);
+    cur_len += (1 + cur[num_diffs].length) * sizeof(DiffGranularity);
     num_diffs++;
   }
 }
 
 /** Logs the current state off memory affairs **/
 void print_memstat(PageInfo * pages) {
-  sic_logf(" ----- Computing memstat ---- ");
+  sic_debug(" ----- Computing memstat ---- ");
   PageInfo *w = pages;
   int num_pages = 0;
   while(w) {
     num_pages++; 
     w = w->next;
   }
-  sic_logf("Num cloned pages: %d", num_pages);
+  sic_debug("Num cloned pages: %d", num_pages);
   w = pages;
   while(w) {
-    sic_logf("Base address: [0x%x]", w->real_page_addr);
+    sic_debug("Base address: [0x%x]", w->real_page_addr);
     print_diff(w->diff);
     w = w->next;
   }
