@@ -1,6 +1,6 @@
 #include <unistd.h>
 #include <stdio.h>
-#include "./sic.h"
+#include "../sic.h"
 
 int main() {
   printf("----------------------------------------\n");

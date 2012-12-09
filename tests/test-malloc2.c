@@ -1,7 +1,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "./sic.h"
+#include "../sic.h"
 
 int main() {
   sic_init();
