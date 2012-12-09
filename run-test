@@ -16,8 +16,12 @@ for opt, arg in options:
         client = "./test-{}".format(arg)
         server_out = open('out-server.txt', 'w')
         client_out = [open("out-client{}.txt".format(i), 'w') for i in range(num_clients)]
-        server_proc = subprocess.Popen(server, stdout=server_out, stderr=server_out, shell=True)
-        client_procs = [subprocess.Popen(client, stdout=client_out[i], stderr=client_out[i], shell=True) for i in range(num_clients)]
+        server_proc = subprocess.Popen(server, stdout=server_out, stderr=server_out)
+        client_procs = [subprocess.Popen(client, stdout=client_out[i], stderr=client_out[i]) for i in range(num_clients)]
+
+        for cp in client_procs:
+          cp.wait()
+        server_proc.kill()
 
         server_out.close()
         [cp.close() for cp in client_out]
