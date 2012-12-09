@@ -62,6 +62,32 @@ typedef enum {
   ERROR_ALL
 } message_t;
 
+static const char * const message_names[] = {
+  "No Acknowledge",
+  "Client at Barrier",
+  "Ack Client at Barrier",
+  "Ack No such Barrier",
+  "Server Release Barrier",
+  "Ack Release Barrier",
+  "Initialize Client",
+  "Initialize Server",
+  "Client Request Lock",
+  "Server Lock Acquired",
+  "Server Lock [not] Acquired",
+  "Client Malloc Address",
+  "Client Request Last Address",
+  "Ack Address Received",
+  "Client Release Lock",
+  "Server Lock Released",
+  "Server Lock [not] Released",
+  "Ack Released",
+  "Ack Not Released",
+  "Ack Acquired",
+  "Ack Not Acquired",
+  "ERROR ALL"
+};
+
+
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 1337
 #define CLIENT_BASE_PORT 1338
@@ -84,7 +110,7 @@ int encode_message(uint8_t* msg, int id, int code, value_t value);
 int decode_message(uint8_t* msg, int* id, int* code, value_t* value);
 
 int encode_transmission(uint8_t *buf, Transmission *trans); 
-Transmission *decode_transmission(uint8_t *msg); 
+Transmission* decode_transmission(uint8_t *msg); 
 
 // Memdiff code 
 
@@ -123,6 +149,7 @@ void print_diff(RegionDiff diff);
 void print_memstat(PageInfo * pages);
 
 const char* get_message(message_t message);
-
+void get_transmission(char * ret, char * msg);
+ 
 char* hex_repr(char * msg);
 #endif

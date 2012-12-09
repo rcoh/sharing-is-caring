@@ -113,10 +113,23 @@ void arrived_at_barrier(barrier_id id) {
   }
 }*/
 
-void released_from_barrier(barrier_id id) {
+void sync_pages(int n_diffinfo, RegionDiffProto** diff_info) {
+  int i;
+  for (i = 0; i < n_diffinfo; i++) {
+    RegionDiff new_diff;
+    from_proto(&new_diff, diff_info[i]);
+    sic_logf("Told to apply diff");
+    print_diff(new_diff);
+    sic_logf("Applying diff to [0x%x]", PHYS((virt_addr)(intptr_t)diff_info[i]->start_address));
+    apply_diff(PHYS((virt_addr)(intptr_t)diff_info[i]->start_address), new_diff);
+  }
+}
+
+void released_from_barrier(barrier_id id, int n_diffinfo, RegionDiffProto** diff_info) {
   assert(!blocked);
-  blocked = false;
+  sync_pages(n_diffinfo, diff_info);
   sic_logf("[CLIENT] %d released from barrier %d",sic_id(), id);
+  blocked = false;
 }
 
 void acquire_lock(lock_id lock) {
@@ -160,7 +173,7 @@ void *runclient(void * args) {
   int listener_d = open_listener_socket();
   int port = CLIENT_BASE_PORT + sic_id();
   sic_logf("Client %d beginning to listen on port %d\n", sic_id(), port);
-  uint8_t buffer[256];
+  uint8_t buffer[MSGMAX_SIZE];
   bind_to_port(listener_d, port); 
   listen(listener_d, 10);
   while (1) {
@@ -174,8 +187,9 @@ void *runclient(void * args) {
 
     // Process the message
     decode_message(buffer, &sid, &scode, &svalue);
+    Transmission * trans = decode_transmission(buffer);
     uint8_t msg[MSGMAX_SIZE];
-    int len = dispatch(msg, sid, scode, svalue);
+    int len = dispatch(msg, trans);
 
     // Send back the response message
     send(connect_d, msg, len, 0);
@@ -183,11 +197,14 @@ void *runclient(void * args) {
   }
 }
 
-int dispatch(uint8_t* return_msg, int id, int code, value_t value) {
-  sic_logf("Client processing: %d %d %d\n", id, code, value);
+int dispatch(uint8_t* return_msg, Transmission* transmission) {
+  int id = transmission->id, code = transmission->code; 
+  value_t value = transmission->value;
+  sic_logf("[CLIENT] processing: id: %d, type: %s, value: %d\n", id, get_message(code), value);
+
   switch (code) {
     case SERVER_RELEASE_BARRIER:
-      released_from_barrier((barrier_id) value);
+      released_from_barrier((barrier_id) value, transmission->n_diff_info, transmission->diff_info);
       return encode_message(return_msg, sic_id(), ACK_RELEASE_BARRIER, value);
     default:
       sic_logf("Can't handle code: %d\n", code);

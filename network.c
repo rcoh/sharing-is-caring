@@ -66,14 +66,16 @@ int recv_data(int socket, uint8_t* rec, int len) {
 
 int send_message(const char* ip, int port, const uint8_t* msg, int len, uint8_t* rec) {
   sic_logf("--------------------------------------------------------------------------------");
-  sic_logf("Trying to send [%x] to [%s] on port [%d] with length [%d]", msg, ip, port, len);
+  char tran_string[50];
+  get_transmission(tran_string, msg);
+  sic_logf("Trying to send [%35s] to [%s] on port [%d] with length [%d]", tran_string, ip, port, len);
   int socket = open_socket(ip, port);
   int result = send(socket, msg, len, 0);
   if (result < 0)
-    fprintf(stderr, "Could not send packet, well fuck\n");
+    fprintf(stderr, "Could not send packet\n");
   sic_logf("Trying to receive response");
   result = recv_data(socket, rec, 255);
-  sic_logf("Received response from server\n");
+  sic_logf("Received response");
   close(socket);
   return result;
 }

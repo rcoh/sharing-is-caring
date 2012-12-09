@@ -18,13 +18,16 @@
 void initialize_client();
 void cleanup_client();
 
+/** Memory syncronization methods **/
+void sync_pages(int n_diffinfo, RegionDiffProto** diff_info);
+
 /** Barrier Methods **/
 
 /** Client arrived at barrier. Blocks until barrier is clear. */
 void arrived_at_barrier(barrier_id barrier);
 
 /** Client released from barrier. Should be called from network code. */
-void released_from_barrier(barrier_id barrier);
+void released_from_barrier(barrier_id barrieri, int n_diffinfo, RegionDiffProto** diff_info);
 
 
 /** Locking Methods **/
@@ -41,7 +44,7 @@ void * runclient(void * args);
 // TODO: refactor to be nicer
 int sic_id();
 
-int dispatch(uint8_t* msg, int id, int code, value_t value);
+int dispatch(uint8_t* msg, Transmission* transmission);
 
 void mark_read_only(void *start, size_t length);
 

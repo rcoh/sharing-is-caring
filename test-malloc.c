@@ -18,6 +18,8 @@ int main() {
   printf("foo[0]: %c\n", foo[0]);
 
   sic_barrier(0);
+  printf("foo[10000]: %c\n", foo[10000]);
+  printf("foo[11024]: %c\n", foo[11024]);
 
   return 0;
 }

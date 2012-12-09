@@ -91,7 +91,7 @@ int decode_message(uint8_t* msg, int* id, int* code, value_t* value) {
   return 0;
 }
 
-Transmission *decode_transmission(uint8_t *msg) {
+Transmission* decode_transmission(uint8_t *msg) {
   int len = (size_t) *msg;
   msg += 4;
   Transmission *trans;
@@ -146,6 +146,7 @@ void apply_diff(void *page_addr, RegionDiff diff) {
   for (i = 0; i < diff.num_diffs; i++) {
     w += diff.diffs[i].length;
     *w = diff.diffs[i].new_data;
+    w++;
   }
 }
 
@@ -328,17 +329,16 @@ void print_memstat(PageInfo * pages) {
   }
 }
 
-const char * get_message(message_t message) {
-  switch (message) {
-    case CLIENT_AT_BARRIER:
-      return "Client -> at barrier";
-    case ACK_CLIENT_AT_BARRIER:
-      return "Ack client at barrier";
-    case CLIENT_INIT:
-      return "Client init";
-    default:
-      return "Unknown";
-  }
+const char* get_message(message_t message) {
+  return message_names[message];
+}
+
+void get_transmission(char * ret, char * msg) {
+  Transmission* tran;
+  tran = decode_transmission(msg);
+  sprintf(ret, "i: %5i, c: %10s, v: %5i",
+         tran->id, get_message(tran->code), tran->value);
+  free(tran);
 }
 
 char * hex_repr(char * msg) {

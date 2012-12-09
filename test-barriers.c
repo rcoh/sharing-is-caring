@@ -7,6 +7,7 @@ int main() {
   printf("At beginning\n");
   sic_barrier(0);
   printf("Passed through barrier 0. Sleeping for a bit.\n");
+  sleep(2);
   printf("Arrived barrier 1.\n");
   
   sic_barrier(1);
