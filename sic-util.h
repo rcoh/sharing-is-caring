@@ -149,7 +149,7 @@ void print_diff(RegionDiff diff);
 void print_memstat(PageInfo * pages);
 
 const char* get_message(message_t message);
-void get_transmission(char * ret, char * msg);
+void get_transmission(char * ret, const uint8_t * msg);
  
 char* hex_repr(char * msg);
 #endif

@@ -80,12 +80,12 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *
       return encode_message(return_msg, -1, rcode, value);
     case CLIENT_MALLOC_ADDR:
       sic_info("Client %d malloced address %d", value, id);
-      last_malloced = (virt_addr)value;
+      last_malloced = (virt_addr)(intptr_t)value;
       return encode_message(return_msg, -1, ACK_ADDRESS_RECIEVED, value);
     case CLIENT_REQUEST_LAST_ADDR:
       sic_info("Client %d request last malloced address. Returning %d", id, last_malloced);
       // TODO: handle no last_malloced
-      return encode_message(return_msg, -1, ACK_ADDRESS_RECIEVED, (value_t)last_malloced);
+      return encode_message(return_msg, -1, ACK_ADDRESS_RECIEVED, (value_t)(intptr_t)last_malloced);
     default:
       sic_info("Can't handle %d\n", code);
       return encode_message(return_msg, -1, ERROR_ALL, -1);

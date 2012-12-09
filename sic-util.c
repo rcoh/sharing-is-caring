@@ -224,7 +224,7 @@ PageInfo* merge_multipage_diff(PageInfo* current, int n_diffinfo, RegionDiffProt
       } else {
         prev->next = w;
       }
-      w->real_page_addr = (virt_addr)diff_info[i]->start_address;
+      w->real_page_addr = (virt_addr)(intptr_t)diff_info[i]->start_address;
       w->diff = new_diff;
     }
   }
@@ -260,7 +260,7 @@ int package_pageinfo(uint8_t *msg,
     RegionDiffProto tmp = REGION_DIFF_PROTO__INIT;
     *r = tmp;
     to_proto(w->diff, r);
-    r->start_address = w->real_page_addr;
+    r->start_address = (int64_t) (intptr_t) w->real_page_addr;
     // We're done with the region diff
     pages[i] = r;
     w = w->next;
@@ -333,11 +333,11 @@ const char* get_message(message_t message) {
   return message_names[message];
 }
 
-void get_transmission(char * ret, char * msg) {
+void get_transmission(char * ret, const uint8_t * msg) {
   Transmission* tran;
-  tran = decode_transmission(msg);
+  tran = decode_transmission((uint8_t *)msg);
   sprintf(ret, "i: %5i, c: %10s, v: %5i",
-         tran->id, get_message(tran->code), tran->value);
+         tran->id, get_message(tran->code), (int)tran->value);
   free(tran);
 }
 
