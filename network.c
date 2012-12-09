@@ -45,11 +45,6 @@ int recv_data(int socket, uint8_t* rec, int len) {
   //char * repr;
   while (total_bytes_recv < len && last_bytes_recv != 0) {
     sic_logf("recv: %d/%d", rec, total_bytes_recv, len);
-    /*
-    repr = hex_repr(rec);
-    sic_logf("recv: hex_repr = %s", repr);
-    free(repr);
-    */
     if (rec[total_bytes_recv] == '\0') {
       sic_logf("Found null termination after %d bytes", total_bytes_recv);
       return 0;
