@@ -38,7 +38,7 @@ int recv_data(int socket, uint8_t* rec, int len) {
   total_bytes_recv += last_bytes_recv;
   //char * repr;
   while (total_bytes_recv < len && last_bytes_recv != 0) {
-    sic_debug("recv: %d/%d", rec, total_bytes_recv, len);
+    sic_debug("recv: %d bytes / %d possible", total_bytes_recv, len);
     if (rec[total_bytes_recv] == '\0') {
       sic_debug("Found null termination after %d bytes", total_bytes_recv);
       break;
@@ -51,8 +51,6 @@ int recv_data(int socket, uint8_t* rec, int len) {
     last_bytes_recv = recv(socket, rec + total_bytes_recv, len - total_bytes_recv, 0);
     total_bytes_recv += last_bytes_recv;
   }
-  assert(total_bytes_recv < len);
-  sic_info("Ran out of space!");
   return total_bytes_recv;
 }
 
@@ -66,7 +64,7 @@ int send_message(const char* ip, int port, const uint8_t* msg, int len, uint8_t*
   if (result < 0)
     fprintf(stderr, "Could not send packet\n");
   sic_debug("Trying to receive response");
-  result = recv_data(socket, rec, 255);
+  result = recv_data(socket, rec, MSGMAX_SIZE);
   sic_debug("Received response. %d bytes", result);
   close(socket);
   return result;
@@ -78,7 +76,7 @@ int send_packet(const char* ip, int port, const uint8_t* msg, int len, uint8_t* 
   int result = send(socket, msg, len + 1, 0);
   if (result < 0)
     fprintf(stderr, "Could not send packet, well fuck\n");
-  result = recv_data(socket, rec, 255);
+  result = recv_data(socket, rec, MSGMAX_SIZE);
   close(socket);
   return result;
 }

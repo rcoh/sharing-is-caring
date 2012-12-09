@@ -3,7 +3,6 @@
 static Barrier barriers[NUM_BARRIERS];
 static Lock    locks[NUM_LOCKS];
 static pthread_mutex_t server_lock;
-static int num_clients_connected = 0;
 static Client  clients[NUM_CLIENTS];
 
 static virt_addr last_malloced;
@@ -11,6 +10,12 @@ static virt_addr last_malloced;
 int main(int argc, char *argv[], char *evnp[]) {
   int result;
   pthread_mutex_init(&server_lock, NULL);
+  // Initialize the client matrix
+  int i;
+  for (i = 0; i < NUM_CLIENTS; i++) {
+    clients[i].port = 0;
+    clients[i].present = false;
+  }
   // Start the main server loop
   pthread_t network_loop;
   pthread_create(&network_loop, NULL, runserver, NULL);
@@ -86,6 +91,12 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *
       sic_info("Client %d request last malloced address. Returning %d", id, last_malloced);
       // TODO: handle no last_malloced
       return encode_message(return_msg, -1, ACK_ADDRESS_RECIEVED, (value_t)(intptr_t)last_malloced);
+    case CLIENT_REQUEST_NUM_CLIENTS:
+      sic_info("Client %d request number of clients. Returning %d", id, NUM_CLIENTS);
+      return encode_message(return_msg, -1, CLIENT_REQUEST_NUM_CLIENTS, NUM_CLIENTS);
+    case CLIENT_EXIT:
+      sic_info("Client %d exiting.", id);
+      return encode_message(return_msg, -1, ACK_CLIENT_EXIT, destroy_client(id));
     default:
       sic_info("Can't handle %d\n", code);
       return encode_message(return_msg, -1, ERROR_ALL, -1);
@@ -93,18 +104,41 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *
   return 0;
 }
 
-/** 
+/**
  * Called by the network loop when a client sends a "new client" request.
  * Returns the id of the new client. The server should reply with the clients
  * id, and note the (ip, port) -> client id mapping.
  */
 client_id new_client(const char * client_ip) {
   pthread_mutex_lock(&server_lock);
-  client_id new_client_id = num_clients_connected++;
+
+  int i;
+  client_id new_client_id;
+  // Find the first available client ID
+  for (i = 0; i < NUM_CLIENTS; i++) {
+    if (!clients[i].present) {
+      clients[i].present = true;
+      new_client_id = i;
+    }
+  }
   strncpy(clients[new_client_id].host, client_ip, sizeof(clients[new_client_id].host));
   clients[new_client_id].port = CLIENT_BASE_PORT + new_client_id;
+
   pthread_mutex_unlock(&server_lock);
   return new_client_id;
+}
+
+/**
+ * Called by the network lookn when a client sends a "client exit" request.
+ * Returns true if we can successfully remove this client from the list
+ */
+bool destroy_client(client_id id) {
+  if (id < NUM_CLIENTS) {
+    clients[id].present = false;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 /** 

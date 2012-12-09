@@ -28,3 +28,5 @@ void sic_lock(lock_id id);
 void sic_unlock(lock_id id);
 
 void memstat();
+
+int sic_num_clients();

@@ -97,6 +97,7 @@ Transmission* decode_transmission(uint8_t *msg) {
   msg += 4;
   Transmission *trans;
   // Unpack the message using protobuf-c.
+  sic_debug("Trying to decode a message of length %d", len);
   trans = transmission__unpack(NULL, len, msg);   
   if (trans == NULL)
     sic_panic("error unpacking incoming message\n");

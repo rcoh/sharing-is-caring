@@ -63,4 +63,8 @@ void sic_exit() {
   pthread_detach(network_loop);
 }
 
+int sic_num_clients() {
+  return query_server(CLIENT_REQUEST_NUM_CLIENTS, sic_id());
+}
+
 

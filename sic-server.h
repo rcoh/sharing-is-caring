@@ -28,7 +28,10 @@ typedef struct {
 typedef struct {
   char host[1024];
   int port;
+  bool present;
 } Client;
+
+
 
 void * runserver(void * args);
 int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *transmission);
@@ -58,6 +61,9 @@ message_t client_frees_lock(client_id client, lock_id lock);
 
 /** client setup signals */
 client_id new_client(const char * inet_addr);
+
+/** client destroy signals */
+bool destroy_client(client_id id);
 
 /** Barrier signals */
 void release_clients(Barrier *barrier);

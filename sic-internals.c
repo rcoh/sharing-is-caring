@@ -31,6 +31,8 @@ void initialize_client() {
                      MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   if (shared_base == MAP_FAILED)
     sic_panic("Could not map shared memory space. Out of VA space.");
+  else
+    sic_debug("Got shared base at 0x%x", shared_base);
 
   next_free = shared_base;
 
@@ -42,6 +44,9 @@ void initialize_client() {
 
 void cleanup_client() {
   munmap(shared_base, SHARED_SIZE);
+  // Let the server know we're gone so they can give someone
+  // else our id
+  signal_server(CLIENT_EXIT, sic_id(), ACK_CLIENT_EXIT);
 }
 
 // Currently a very stupid alloc ...
@@ -68,22 +73,22 @@ value_t query_server(message_t code, value_t value) {
   int len = encode_message(msg, sic_id(), code, value);
   int sid, scode;
   value_t svalue;
-  uint8_t resp[256];
+  uint8_t resp[MSGMAX_SIZE];
   sic_debug("Sending all the signals to the server");
   send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
-  sic_debug("Got response code from server: %d", scode);
+  sic_debug("Got response code from server: %s", get_message(scode));
   return svalue;
 }
 
 int send_message_to_server(uint8_t *msg, int len, message_t expected_ack) {
   int sid, scode;
   value_t svalue;
-  uint8_t resp[256];
+  uint8_t resp[MSGMAX_SIZE];
   sic_debug("Sending all the signals to the server");
   send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
-  sic_debug("Got response code from server: %d", scode);
+  sic_debug("Got response code from server: %s", get_message(scode));
   if (expected_ack && scode != expected_ack)
     sic_panic("Networking error, could not get ack from server");
   return scode;
@@ -127,7 +132,7 @@ void released_from_barrier(barrier_id id, int n_diffinfo, RegionDiffProto** diff
 
 void wait_for_server() {
   sic_client_id = 0;
-  uint8_t msg[MSGMAX_SIZE], resp[256];
+  uint8_t msg[MSGMAX_SIZE], resp[MSGMAX_SIZE];
   int len = encode_message(msg, -1, CLIENT_INIT, 0);
   send_packet(SERVER_IP, SERVER_PORT, msg, len, resp);
   int sid, scode;
@@ -189,14 +194,16 @@ int dispatch(uint8_t* return_msg, Transmission* transmission) {
 /** Memory Management **/
 
 static void handler(int sig, siginfo_t *si, void *unused) {
+  int r;
   sic_debug("Got SIGSEGV at address: 0x%lx",(long) si->si_addr);
   sic_debug("Marking it writeable");
   void * failing_page = ROUNDDOWN(si->si_addr, PGSIZE);
-  if(mprotect(failing_page, PGSIZE, PROT_READ | PROT_WRITE) < 0) {
-    printf("mprotect failed.");
+  if((r = mprotect(failing_page, PGSIZE, PROT_READ | PROT_WRITE)) < 0) {
+    sic_debug("[ERROR mprotect failed! %s", strerror(errno));
   }
-  sic_debug("Cloning page");
+  sic_debug("Zeroing page @[0x%x]", failing_page);
   memset(failing_page, 0, PGSIZE);
+  sic_debug("Registering page");
   register_page(VIRT(failing_page), twin_page(failing_page));
 }
 

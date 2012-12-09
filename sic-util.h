@@ -12,7 +12,7 @@
 
 
 #define PGSIZE 4096
-#define MSGMAX_SIZE 1024 
+#define MSGMAX_SIZE 2048 
 // Rounding operations (efficient when n is a power of 2)
 // Round down to the nearest multiple of n
 #define ROUNDDOWN(a, n)           \
@@ -60,6 +60,10 @@ typedef enum {
   ACK_NOT_RELEASED,
   ACK_ACQUIRED,
   ACK_NOT_ACQUIRED,
+
+  CLIENT_EXIT,
+  ACK_CLIENT_EXIT,
+  CLIENT_REQUEST_NUM_CLIENTS,
   ERROR_ALL
 } message_t;
 
@@ -85,6 +89,9 @@ static const char * const message_names[] = {
   "Ack Not Released",
   "Ack Acquired",
   "Ack Not Acquired",
+  "Client Exiting",
+  "Ack Client Exiting",
+  "Number of Clients",
   "ERROR ALL"
 };
 
@@ -93,7 +100,7 @@ static const char * const message_names[] = {
 #define SERVER_PORT 1337
 #define CLIENT_BASE_PORT 1338
 
-#define SHARED_SIZE (1 << 20)
+#define SHARED_SIZE (1 << 26)
 
 #define ERROR_ALL 99
 // Error Codes 
