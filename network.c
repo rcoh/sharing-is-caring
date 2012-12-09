@@ -39,28 +39,30 @@ int open_socket(const char* ip, int port) {
 }
 
 int recv_data(int socket, uint8_t* rec, int len) {
-  int bytes_recv = recv(socket, rec, len, 0);
+  int total_bytes_recv = 0;
+  int last_bytes_recv = recv(socket, rec, len, 0);
+  total_bytes_recv += last_bytes_recv;
   //char * repr;
-  while (bytes_recv) {
-    sic_logf("recv: %d/%d", rec, bytes_recv, len);
+  while (total_bytes_recv < len && last_bytes_recv != 0) {
+    sic_logf("recv: %d/%d", rec, total_bytes_recv, len);
     /*
     repr = hex_repr(rec);
     sic_logf("recv: hex_repr = %s", repr);
     free(repr);
     */
-    len -= bytes_recv;
-    if (rec[bytes_recv] == '\0') {
-      sic_logf("Found null termination after %d bytes", bytes_recv);
+    if (rec[total_bytes_recv] == '\0') {
+      sic_logf("Found null termination after %d bytes", total_bytes_recv);
       return 0;
     }
-    if (bytes_recv < 0)
-      return bytes_recv;
-    if (len == 0)
+    if (last_bytes_recv < 0)
+      return last_bytes_recv;
+    if (total_bytes_recv == len)
       return 0;
     sic_logf("recv: needs more bytes, waiting for them");
-    // Not correct...
-    bytes_recv = recv(socket, rec + bytes_recv, len, 0);
+    last_bytes_recv = recv(socket, rec + total_bytes_recv, len - total_bytes_recv, 0);
+    total_bytes_recv += last_bytes_recv;
   }
+  assert(total_bytes_recv < len);
   return 0;
 }
 
