@@ -1,0 +1,25 @@
+#!/usr/bin/python
+import sys
+import getopt
+import subprocess
+
+num_clients = 2
+
+options, remainder = getopt.getopt(sys.argv[1:], "ht:", ["help", "test="])
+
+for opt, arg in options:
+    if opt in ('-h', '--help'):
+        print("Run this with a test using -t")
+    elif opt in ('-t'):
+        print("running {}".format(arg))
+        server = "./server"
+        client = "./test-{}".format(arg)
+        server_out = open('out-server.txt', 'w')
+        client_out = [open("out-client{}.txt".format(i), 'w') for i in range(num_clients)]
+        server_proc = subprocess.Popen(server, stdout=server_out, stderr=server_out, shell=True)
+        client_procs = [subprocess.Popen(client, stdout=client_out[i], stderr=client_out[i], shell=True) for i in range(num_clients)]
+
+        server_out.close()
+        [cp.close() for cp in client_out]
+
+
