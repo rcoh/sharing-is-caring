@@ -36,6 +36,7 @@ int main() {
   if(memory_errors == 0) 
     printf("No memory errors!\n");
 
+  sic_exit();
   return 0;
 }
 

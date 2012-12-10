@@ -25,6 +25,7 @@ int main() {
     }
   }
 
+  sic_exit();
   return 0;
 }
 

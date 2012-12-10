@@ -19,6 +19,7 @@ int main() {
   sic_barrier(0);
   printf("foo[10000]: %c\n", foo[10000]);
   printf("foo[11024]: %c\n", foo[11024]);
+  sic_exit();
   return 0;
 }
 
