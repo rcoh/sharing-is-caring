@@ -12,7 +12,7 @@
 
 
 #define PGSIZE 4096
-#define MSGMAX_SIZE 15000
+#define MSGMAX_SIZE 24000
 // Rounding operations (efficient when n is a power of 2)
 // Round down to the nearest multiple of n
 #define ROUNDDOWN(a, n)           \
@@ -96,7 +96,7 @@ static const char * const message_names[] = {
 };
 
 
-#define SERVER_IP "127.0.0.1"
+#define SERVER_IP "18.248.7.172"
 #define SERVER_PORT 1337
 #define CLIENT_BASE_PORT 1338
 

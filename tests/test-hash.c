@@ -4,7 +4,7 @@
 #include "../sic.h"
 #include <crypt.h>
 
-#define SIZE 512
+#define SIZE 4096
 
 void fill(char *arr, int len) {
   int i;
@@ -43,8 +43,14 @@ int main() {
   int end = length * (sic_id()+1);
 
   sic_barrier(0);
+  int times_through = 2;
   for (i = begin; i < end ; i++) {
       complex_computation(hashes[i], seeds[i]);
+      times_through++;
+      if(times_through >= 13) {
+        sic_barrier(times_through);
+        times_through = 3;
+      }
   }
   sic_barrier(1);
 

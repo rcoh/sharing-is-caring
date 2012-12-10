@@ -39,12 +39,14 @@ int recv_data(int socket, uint8_t* rec, int len) {
   //char * repr;
   while (total_bytes_recv < len && last_bytes_recv != 0) {
     sic_debug("recv: %d bytes / %d possible", total_bytes_recv, len);
+    if (last_bytes_recv < 0) {
+      sic_debug("[ERROR] while receiving: %s", strerror(errno));
+      return last_bytes_recv;
+    }
     if (rec[total_bytes_recv] == '\0') {
       sic_debug("Found null termination after %d bytes", total_bytes_recv);
       break;
     }
-    if (last_bytes_recv < 0)
-      return last_bytes_recv;
     if (total_bytes_recv == len)
       break;
     sic_debug("recv: needs more bytes, waiting for them");
