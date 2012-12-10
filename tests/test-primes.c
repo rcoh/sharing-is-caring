@@ -3,7 +3,7 @@
 #include <math.h>
 #include "../sic.h"
 
-#define SIZE 1000000
+#define SIZE 2000000
 
 int main() {
   sic_init();

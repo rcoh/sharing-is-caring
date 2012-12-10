@@ -21,16 +21,19 @@ if options.test_name and options.num_clients and options.clients:
     client = ["./test-{}".format(options.test_name)]
     num_clients = int(options.num_clients)
     clients = int(options.clients)
-    server_out = open('out-server.txt', 'w')
     client_out = [open("out-client-{}.txt".format(i), 'w') for i in range(clients)]
-    server_proc = subprocess.Popen(server, stdout=server_out, stderr=server_out)
+    if num_clients > 0:
+        server_out = open('out-server.txt', 'w')
+        server_proc = subprocess.Popen(server, stdout=server_out, stderr=server_out)
     client_procs = [subprocess.Popen(client, stdout=client_out[i], stderr=client_out[i]) for i in range(clients)]
 
     for cp in client_procs:
         cp.wait()
-    server_proc.kill()
 
-    server_out.close()
+    if num_clients > 0:
+        server_proc.kill()
+        server_out.close()
+
     [cp.close() for cp in client_out]
 else:
     parser.error("Incorrect arguments, please run with --help")

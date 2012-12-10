@@ -138,8 +138,6 @@ client_id new_client(const char * client_ip) {
       clients[i].present = true;
       new_client_id = i;
       break;
-    } else {
-      sic_debug("WELL FUCK! %d is used", i);
     }
   }
   strncpy(clients[new_client_id].host, client_ip, sizeof(clients[new_client_id].host));

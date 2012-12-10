@@ -17,7 +17,7 @@ void sic_init() {
 
 void sic_lock(lock_id lock) {
   while(signal_server(CLIENT_REQUEST_LOCK, lock, NO_ACK) == SERVER_LOCK_NOT_ACQUIRED) {
-   sched_yield();
+    sched_yield();
   }
   sic_debug("[CLIENT] %d acquired lock %d", sic_id(), lock);
 }

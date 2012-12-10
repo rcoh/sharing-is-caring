@@ -4,7 +4,7 @@ SERVER_SOURCES = sic-server.c
 GENERIC_SOURCES = sic.c sic-internals.c sic-util.c network.c sic-message.pb-c.c
 HEADERS = sic.h sic-internals.h network.h sic-util.h sic-server.h sic-message.pb-c.h google/protobuf-c/protobuf-c.h google/protobuf-c/protobuf-c-rpc.h google/protobuf-c/protobuf-c-dispatch.h google/protobuf-c/protobuf-c-private.h
 
-TEST_SOURCES = $(wildcard tests/*.c)
+TEST_SOURCES = $(wildcard tests/test*.c)
 TEST_OBJECTS = $(patsubst tests/%.c,tests/%.o,$(TEST_SOURCES))
 
 # What we're building
