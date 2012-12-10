@@ -52,7 +52,6 @@ void cleanup_client() {
 // Currently a very stupid alloc ...
 phys_addr alloc(size_t len) {
   void * ret = next_free;
-  len = ROUNDUP(len, PGSIZE);
   if ((next_free + len) - shared_base > SHARED_SIZE)
     ret = NULL;
   else
@@ -114,7 +113,7 @@ void sync_pages(int n_diffinfo, RegionDiffProto** diff_info) {
   for (i = 0; i < n_diffinfo; i++) {
     RegionDiff new_diff;
     from_proto(&new_diff, diff_info[i]);
-    sic_debug("Told to apply diff");
+    sic_debug("T + 1old to apply diff");
     print_diff(new_diff);
     sic_debug("Applying diff to [0x%x]", PHYS((virt_addr)(intptr_t)diff_info[i]->start_address));
     apply_diff(PHYS((virt_addr)(intptr_t)diff_info[i]->start_address), new_diff, false);
@@ -264,7 +263,9 @@ int diff_and_cleanup(uint8_t *msg, client_id client, int code, value_t value) {
   }
   print_memstat(invalid_pages);
   sic_debug("Packaging current diff to send to server");
-  return package_pageinfo(msg, client, code, value, invalid_pages);
+  int ret = package_pageinfo(msg, client, code, value, invalid_pages);
+  invalid_pages = NULL;
+  return ret;
 }
 
 RegionDiff diff_for_page(PageInfo *page) {

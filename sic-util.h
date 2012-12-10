@@ -12,7 +12,7 @@
 
 
 #define PGSIZE 4096
-#define MSGMAX_SIZE 4096
+#define MSGMAX_SIZE 15000
 // Rounding operations (efficient when n is a power of 2)
 // Round down to the nearest multiple of n
 #define ROUNDDOWN(a, n)           \

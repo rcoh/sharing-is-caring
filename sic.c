@@ -39,7 +39,7 @@ void sic_unlock(lock_id id) {
 void *sic_malloc(size_t size) {
   phys_addr addr = 0;
   if (sic_id() == 0) {
-    addr = alloc(ROUNDUP(size, PGSIZE));
+    addr = alloc(size);
     signal_server(CLIENT_MALLOC_ADDR, (uintptr_t)VIRT(addr), ACK_ADDRESS_RECIEVED);
     // send virt address to server  
   }

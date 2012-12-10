@@ -233,6 +233,7 @@ void release_clients(Barrier *barrier) {
   // Method only called from client_arrived, so we already have the lock
   clear_barrier(barrier);
   broadcast_barrier_release(barrier->id);
+  barrier->invalid_pages = NULL;
 }
 
 void signal_client(client_id id, message_t code, int value, message_t expected_ack) {
