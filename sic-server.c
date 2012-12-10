@@ -102,7 +102,7 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *
       rcode = client_frees_lock(id, value);
       return encode_message(return_msg, -1, rcode, value);
     case CLIENT_MALLOC_ADDR:
-      sic_info("Client %d malloced address %d", value, id);
+      sic_info("Client %d malloced address %d", id, value);
       last_malloced = (virt_addr)(intptr_t)value;
       return encode_message(return_msg, -1, ACK_ADDRESS_RECIEVED, value);
     case CLIENT_REQUEST_LAST_ADDR:
@@ -115,8 +115,12 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *
     case CLIENT_EXIT:
       sic_info("Client %d exiting.", id);
       return encode_message(return_msg, -1, ACK_CLIENT_EXIT, destroy_client(id));
+    case CLIENT_LOCK_DIFF:
+      sic_info("Client %d sending diff for lock %d", id, value);
+      client_arrived_at_lock(id, value, transmission->n_diff_info, transmission->diff_info);
+      return encode_message(return_msg, -1, NO_ACK, value);
     default:
-      sic_info("Can't handle %d\n", code);
+      sic_info("Can't handle %s\n", get_message(code));
       return encode_message(return_msg, -1, ERROR_ALL, -1);
   }
   return 0;
@@ -188,6 +192,20 @@ int client_arrived_at_barrier(client_id client, barrier_id barrier,
     assert_full_barrier(*b);
     release_clients(b);
   }
+  pthread_mutex_unlock(&server_lock);
+  return 0;
+}
+
+int client_arrived_at_lock(client_id client, lock_id lock,
+                           int n_diffinfo, RegionDiffProto **diff_info) {
+  if (lock >= NUM_LOCKS) {
+    return -1;
+  }
+
+  pthread_mutex_lock(&server_lock);
+  Lock *l = &locks[lock];
+  l->invalid_pages = merge_multipage_diff(NULL, n_diffinfo, diff_info);
+
   pthread_mutex_unlock(&server_lock);
   return 0;
 }
@@ -264,9 +282,11 @@ void broadcast_barrier_release(barrier_id id) {
   sic_debug("[SERVER] Packaging diff for barrier %i", id);
   PageInfo * bpages = barriers[id].invalid_pages;
 
-  if (bpages)
+  if (bpages) {
     print_memstat(barriers[id].invalid_pages);
-
+  } else {
+    sic_debug("No diff to send!");
+  }
   for(i = 0; i < num_clients; i++) {
     uint8_t msg[MSGMAX_SIZE];
     memset(msg, 0, sizeof(msg));

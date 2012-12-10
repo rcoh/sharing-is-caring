@@ -16,10 +16,18 @@ void sic_init() {
 }
 
 void sic_lock(lock_id lock) {
-  while(signal_server(CLIENT_REQUEST_LOCK, lock, NO_ACK) == SERVER_LOCK_NOT_ACQUIRED) {
-    sched_yield();
+  Transmission * tran;
+  while(1) {
+    tran = full_query_server(CLIENT_REQUEST_LOCK, lock);
+    if(tran->code == SERVER_LOCK_NOT_ACQUIRED) {
+      free(tran);
+      sched_yield();
+      continue;
+    }
+    break;
   }
   sic_debug("[CLIENT] %d acquired lock %d", sic_id(), lock);
+  free(tran);
 }
 
 void sic_unlock(lock_id id) {
@@ -27,9 +35,13 @@ void sic_unlock(lock_id id) {
  if (code == SERVER_LOCK_NOT_RELEASED) {
    sic_debug("[CLIENT] Could not release lock %d because %d never acquired it", id, sic_id());
  } else {
+   uint8_t msg[MSGMAX_SIZE];
+   memset(msg, 0, MSGMAX_SIZE);
+   int len = diff_and_cleanup(msg, sic_id(), CLIENT_LOCK_DIFF, id);
+   sic_debug("[CLIENT] Sent diff to server for lock %d", id);
+   send_message_to_server(msg, len, NO_ACK);
    sic_debug("[CLIENT] Released lock %d held by %d", id, sic_id());
  }
- // diff and cleanup!?
 }
 
 /** 
@@ -51,7 +63,7 @@ void *sic_malloc(size_t size) {
     addr = PHYS(malloc_region);
   }
   assert(addr);
-  sic_info("Malloc returned virtual address %x", VIRT(addr));
+  sic_info("Malloc returned VA %p for PA %p", VIRT(addr), addr);
   // Everyone request shared address of last allocation.
   return addr;
 }

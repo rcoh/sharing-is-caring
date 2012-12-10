@@ -67,13 +67,24 @@ int signal_server(message_t code, value_t value, message_t expected_ack) {
   return send_message_to_server(msg, len, expected_ack);
 }
 
+Transmission* full_query_server(message_t code, value_t value) {
+  uint8_t msg[MSGMAX_SIZE];
+  uint8_t resp[MSGMAX_SIZE];
+  int len = encode_message(msg, sic_id(), code, value);
+  sic_debug("Sending full query to the server");
+  send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
+  Transmission* tran = decode_transmission(resp);
+  sic_debug("Got response code from server: %s", get_message(tran->code));
+  return tran;
+}
+
 value_t query_server(message_t code, value_t value) {
   uint8_t msg[MSGMAX_SIZE];
   int len = encode_message(msg, sic_id(), code, value);
   int sid, scode;
   value_t svalue;
   uint8_t resp[MSGMAX_SIZE];
-  sic_debug("Sending all the signals to the server");
+  sic_debug("Sending query to the signals to the server");
   send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
   sic_debug("Got response code from server: %s", get_message(scode));
@@ -84,7 +95,7 @@ int send_message_to_server(uint8_t *msg, int len, message_t expected_ack) {
   int sid, scode;
   value_t svalue;
   uint8_t resp[MSGMAX_SIZE];
-  sic_debug("Sending all the signals to the server");
+  sic_debug("Sending message the signals to the server");
   send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
   sic_debug("Got response code from server: %s", get_message(scode));
@@ -113,9 +124,10 @@ void sync_pages(int n_diffinfo, RegionDiffProto** diff_info) {
   for (i = 0; i < n_diffinfo; i++) {
     RegionDiff new_diff;
     from_proto(&new_diff, diff_info[i]);
-    sic_debug("T + 1old to apply diff");
+    sic_debug("Applying diff to PA[0x%x] which is VA[0x%x]",
+              PHYS((virt_addr)(intptr_t)diff_info[i]->start_address),
+              (virt_addr)(intptr_t)diff_info[i]->start_address);
     print_diff(new_diff);
-    sic_debug("Applying diff to [0x%x]", PHYS((virt_addr)(intptr_t)diff_info[i]->start_address));
     apply_diff(PHYS((virt_addr)(intptr_t)diff_info[i]->start_address), new_diff, false);
   }
 }
@@ -168,6 +180,7 @@ void *runclient(void * args) {
     Transmission * trans = decode_transmission(buffer);
     uint8_t msg[MSGMAX_SIZE];
     int len = dispatch(msg, trans);
+    free(trans);
 
     // Send back the response message
     send(connect_d, msg, len, 0);

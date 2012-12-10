@@ -144,8 +144,16 @@ RegionDiff memdiff(void *old, void *new, size_t length) {
 }
 
 void apply_diff(void *page_addr, RegionDiff diff, bool use_or) {
-  DiffGranularity *w = page_addr;
-  int i;
+  DiffGranularity *w = (DiffGranularity*)page_addr;
+  int i, r;
+  void *failing_page = NULL;
+  if(!use_or) {
+    void *failing_page = ROUNDDOWN(page_addr, PGSIZE);
+    if((r = mprotect(failing_page, PGSIZE, PROT_READ | PROT_WRITE)) < 0) {
+      sic_debug("[ERROR mprotect failed! %s", strerror(errno));
+    }
+  }
+
   for (i = 0; i < diff.num_diffs; i++) {
     w += diff.diffs[i].length;
     if (!use_or) {
@@ -155,6 +163,8 @@ void apply_diff(void *page_addr, RegionDiff diff, bool use_or) {
     }
     w++;
   }
+  if(!use_or) 
+    mprotect(failing_page, PGSIZE, PROT_READ);
 }
 
 RegionDiff merge_multiple_diffs(int num_diffs, RegionDiff *r) {

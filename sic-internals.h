@@ -5,9 +5,6 @@
 #include <sched.h>
 #include <signal.h>
 #include <string.h>
-#include <malloc.h>
-
-
 #include <sys/mman.h>
 
 #include "sic-util.h"
@@ -56,6 +53,7 @@ virt_addr VIRT(phys_addr a);
 phys_addr PHYS(virt_addr a);
 
 value_t query_server(message_t code, value_t value);
+Transmission* full_query_server(message_t code, value_t value);
 
 /** 
  * Clone a page within the shared virtual address space into the local address

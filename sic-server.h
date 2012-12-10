@@ -23,6 +23,7 @@ typedef struct {
   lock_id id;
   client_id owner;
   bool held;
+  PageInfo *invalid_pages;
 } Lock;
 
 typedef struct {
@@ -40,6 +41,8 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *
 int client_arrived_at_barrier(client_id client, barrier_id barrier, 
                               int n_diffinfo, RegionDiffProto **diff_info);
 
+int client_arrived_at_lock(client_id client, lock_id lock,
+                           int n_diffinfo, RegionDiffProto **diff_info);
 
 /** Called by network code when client requests a lock. */
 message_t client_requests_lock(client_id client, lock_id lock);

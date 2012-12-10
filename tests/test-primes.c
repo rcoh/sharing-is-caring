@@ -5,6 +5,16 @@
 
 #define SIZE 2000000
 
+bool is_prime(int num) {
+  int max_check = floor(sqrt(num)) + 1;
+  int i;
+  for(i = 2; i < max_check; i++) {
+    if (num % i == 0)
+      return false;
+  }
+  return true;
+}
+
 int main() {
   sic_init();
   char *primes = sic_malloc(SIZE);
@@ -25,10 +35,22 @@ int main() {
   }
   sic_barrier(1);
 
-  if (sic_id() == 0) {
-    for (i = 0; i < SIZE; i++) {
-      printf("%d: %d\n", i, primes[i]);
+  bool has_error = false;
+  // Primes should have a 0 for primes and 1's for composite
+  for (i = 0; i < SIZE; i++) {
+    if(is_prime(i) && (primes[i] != 0)) {
+      printf("ERROR: got %i wrong. Primes has %d but value is prime.\n", i, primes[i]);
+      has_error = true;
+    } else if (!is_prime(i) && (primes[i] == 0)) {
+      printf("ERROR: got %i wrong. Primes has %d but value is not prime\n", i, primes[i]);
+      has_error = true;
+    } else {
+      if (sic_id() == 0)
+        printf("CORRECT: got %i correct\n", i);
     }
+  }
+  if(!has_error) {
+    printf("No errors primes all correct!\n");
   }
   sic_exit();
   return 0;

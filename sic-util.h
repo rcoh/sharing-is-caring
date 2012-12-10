@@ -7,7 +7,8 @@
 #include <string.h>
 #include <errno.h>
 #include <stdarg.h>
-
+#include <malloc.h>
+#include <sys/mman.h>
 #include "sic-message.pb-c.h"
 
 
@@ -64,6 +65,7 @@ typedef enum {
   CLIENT_EXIT,
   ACK_CLIENT_EXIT,
   CLIENT_REQUEST_NUM_CLIENTS,
+  CLIENT_LOCK_DIFF,
   ERROR_ALL
 } message_t;
 
@@ -92,6 +94,7 @@ static const char * const message_names[] = {
   "Client Exiting",
   "Ack Client Exiting",
   "Number of Clients",
+  "Client Diff for Lock",
   "ERROR ALL"
 };
 
