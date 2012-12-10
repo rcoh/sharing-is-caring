@@ -9,12 +9,12 @@
 
 #define NUM_BARRIERS 1000
 #define NUM_LOCKS    1000
+#define MAX_CLIENTS  100
 #define NUM_CLIENTS  2
-#define NO_OWNER     NUM_CLIENTS
 
 typedef struct {
   barrier_id id;
-  bool clients_arrived[NUM_CLIENTS];
+  bool clients_arrived[MAX_CLIENTS];
   uint32_t num_clients_waiting;
   PageInfo *invalid_pages;
 } Barrier;

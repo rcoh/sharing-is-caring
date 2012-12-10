@@ -1,21 +1,39 @@
 #include "sic-server.h"
 
+
 static Barrier barriers[NUM_BARRIERS];
 static Lock    locks[NUM_LOCKS];
 static pthread_mutex_t server_lock;
-static Client  clients[NUM_CLIENTS];
-
+static Client  clients[MAX_CLIENTS];
+static int     num_clients = NUM_CLIENTS;
 static virt_addr last_malloced;
 
 int main(int argc, char *argv[], char *evnp[]) {
   int result;
-  pthread_mutex_init(&server_lock, NULL);
-  // Initialize the client matrix
   int i;
-  for (i = 0; i < NUM_CLIENTS; i++) {
+  pthread_mutex_init(&server_lock, NULL);
+
+  if (argc == 2) {
+    num_clients = atoi(argv[1]);
+    if (num_clients < 0 || num_clients >= MAX_CLIENTS)
+      num_clients = NUM_CLIENTS;
+   }
+
+  // Initialize the client matrix
+  for (i = 0; i < num_clients; i++) {
     clients[i].port = 0;
     clients[i].present = false;
   }
+
+  for (i = 0; i < NUM_BARRIERS; i++) {
+    barriers[i].invalid_pages = NULL;
+    barriers[i].id = i;
+    barriers[i].num_clients_waiting = 0;
+    int j;
+    for (j = 0; j < MAX_CLIENTS; j++)
+      barriers[i].clients_arrived[j] = false;
+  }
+
   // Start the main server loop
   pthread_t network_loop;
   pthread_create(&network_loop, NULL, runserver, NULL);
@@ -31,7 +49,7 @@ void * runserver(void * args) {
   int listener_d = open_listener_socket();
   bind_to_port(listener_d, SERVER_PORT);
   listen(listener_d, 10);
-  sic_debug("Waiting for connections from %d clients ...", NUM_CLIENTS);
+  sic_debug("Waiting for connections from %d clients ...", num_clients);
   while (1) {
     struct sockaddr_in client_addr;
     unsigned int address_size = sizeof(client_addr);
@@ -92,8 +110,8 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *
       // TODO: handle no last_malloced
       return encode_message(return_msg, -1, ACK_ADDRESS_RECIEVED, (value_t)(intptr_t)last_malloced);
     case CLIENT_REQUEST_NUM_CLIENTS:
-      sic_info("Client %d request number of clients. Returning %d", id, NUM_CLIENTS);
-      return encode_message(return_msg, -1, CLIENT_REQUEST_NUM_CLIENTS, NUM_CLIENTS);
+      sic_info("Client %d request number of clients. Returning %d", id, num_clients);
+      return encode_message(return_msg, -1, CLIENT_REQUEST_NUM_CLIENTS, num_clients);
     case CLIENT_EXIT:
       sic_info("Client %d exiting.", id);
       return encode_message(return_msg, -1, ACK_CLIENT_EXIT, destroy_client(id));
@@ -113,12 +131,15 @@ client_id new_client(const char * client_ip) {
   pthread_mutex_lock(&server_lock);
 
   int i;
-  client_id new_client_id;
+  client_id new_client_id = 0;
   // Find the first available client ID
-  for (i = 0; i < NUM_CLIENTS; i++) {
-    if (!clients[i].present) {
+  for (i = 0; i < num_clients; i++) {
+    if (clients[i].present == false) {
       clients[i].present = true;
       new_client_id = i;
+      break;
+    } else {
+      sic_debug("WELL FUCK! %d is used", i);
     }
   }
   strncpy(clients[new_client_id].host, client_ip, sizeof(clients[new_client_id].host));
@@ -133,7 +154,7 @@ client_id new_client(const char * client_ip) {
  * Returns true if we can successfully remove this client from the list
  */
 bool destroy_client(client_id id) {
-  if (id < NUM_CLIENTS) {
+  if (id < num_clients) {
     clients[id].present = false;
     return true;
   } else {
@@ -165,7 +186,7 @@ int client_arrived_at_barrier(client_id client, barrier_id barrier,
     b->num_clients_waiting++;
   }
 
-  if (b->num_clients_waiting == NUM_CLIENTS) {
+  if (b->num_clients_waiting == num_clients) {
     assert_full_barrier(*b);
     release_clients(b);
   }
@@ -201,7 +222,7 @@ message_t client_frees_lock(client_id client, lock_id lock) {
   Lock *l = &locks[lock];
   if (l->held && l->owner == client) {
     l->held = false;
-    l->owner = NO_OWNER;
+    l->owner = num_clients;
     rcode = SERVER_LOCK_RELEASED;
   } else {
     rcode = SERVER_LOCK_NOT_RELEASED;
@@ -247,7 +268,7 @@ void broadcast_barrier_release(barrier_id id) {
   if (bpages)
     print_memstat(barriers[id].invalid_pages);
 
-  for(i = 0; i < NUM_CLIENTS; i++) {
+  for(i = 0; i < num_clients; i++) {
     uint8_t msg[MSGMAX_SIZE];
     memset(msg, 0, sizeof(msg));
     sic_debug("Packaging current diff to send to client # %i", i);
@@ -259,26 +280,26 @@ void broadcast_barrier_release(barrier_id id) {
 
 
 void signal_lock_acquired(client_id client, lock_id lock) {
-  if (client >= NUM_CLIENTS)
+  if (client >= num_clients)
     sic_panic("Client ID too high!");
   signal_client(client, SERVER_LOCK_ACQUIRED, lock, ACK_ACQUIRED);
 }
 
 void signal_lock_not_acquired(client_id client, lock_id lock) {
-  if (client >= NUM_CLIENTS)
+  if (client >= num_clients)
     sic_panic("Client ID too high!");
   signal_client(client, SERVER_LOCK_NOT_ACQUIRED, lock, ACK_NOT_ACQUIRED);
 }
 
 
 void signal_successful_release(client_id client, lock_id lock) {
-  if (client >= NUM_CLIENTS)
+  if (client >= num_clients)
     sic_panic("Client ID too high!");
   signal_client(client, SERVER_LOCK_RELEASED, lock, ACK_RELEASED);
 }
 
 void signal_invalid_release(client_id client, lock_id lock) {
-  if (client >= NUM_CLIENTS)
+  if (client >= num_clients)
     sic_panic("Client ID too high!");
   signal_client(client, SERVER_LOCK_NOT_RELEASED, lock, ACK_NOT_RELEASED);
 }
@@ -291,21 +312,21 @@ void signal_invalid_release(client_id client, lock_id lock) {
 void assert_empty_barrier(Barrier b) {
   // Make sure it's empty
   int i;
-  for (i = 0; i < NUM_CLIENTS; i++) {
+  for (i = 0; i < num_clients; i++) {
     assert(b.clients_arrived[i] == false);
   }
 }
 
 void assert_full_barrier(Barrier b) {
   int i;
-  for (i = 0; i < NUM_CLIENTS; i++) {
+  for (i = 0; i < num_clients; i++) {
     assert(b.clients_arrived[i] == true);
   }
 }
 
 void clear_barrier(Barrier *b) {
   int i;
-  for (i = 0; i < NUM_CLIENTS; i++) {
+  for (i = 0; i < num_clients; i++) {
     b->clients_arrived[i] = false;
   }
   b->num_clients_waiting = 0;

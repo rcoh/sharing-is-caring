@@ -1,29 +1,37 @@
 #!/usr/bin/python
 import sys
-import getopt
+from optparse import OptionParser
 import subprocess
 
 num_clients = 2
 
-options, remainder = getopt.getopt(sys.argv[1:], "ht:", ["help", "test="])
+parser = OptionParser()
+parser.add_option("-t", "--test", dest="test_name",
+                  help="run supplied test program")
+parser.add_option("-c", "--clients", dest="clients", default="2",
+                  help="start this number of clients locally"),
+parser.add_option("-n", "--num_clients", dest="num_clients", default="2",
+                  help="wait for the number of workers before beginning computation")
 
-for opt, arg in options:
-    if opt in ('-h', '--help'):
-        print("Run this with a test using -t")
-    elif opt in ('-t'):
-        print("running {}".format(arg))
-        server = "./server"
-        client = "./test-{}".format(arg)
-        server_out = open('out-server.txt', 'w')
-        client_out = [open("out-client{}.txt".format(i), 'w') for i in range(num_clients)]
-        server_proc = subprocess.Popen(server, stdout=server_out, stderr=server_out)
-        client_procs = [subprocess.Popen(client, stdout=client_out[i], stderr=client_out[i]) for i in range(num_clients)]
+options, args = parser.parse_args()
 
-        for cp in client_procs:
-          cp.wait()
-        server_proc.kill()
+if options.test_name and options.num_clients and options.clients:
+    print("Running {} with {} workers!".format(options.test_name, options.num_clients))
+    server = ["./server", options.num_clients]
+    client = ["./test-{}".format(options.test_name)]
+    num_clients = int(options.num_clients)
+    clients = int(options.clients)
+    server_out = open('out-server.txt', 'w')
+    client_out = [open("out-client-{}.txt".format(i), 'w') for i in range(clients)]
+    server_proc = subprocess.Popen(server, stdout=server_out, stderr=server_out)
+    client_procs = [subprocess.Popen(client, stdout=client_out[i], stderr=client_out[i]) for i in range(clients)]
 
-        server_out.close()
-        [cp.close() for cp in client_out]
+    for cp in client_procs:
+        cp.wait()
+    server_proc.kill()
 
+    server_out.close()
+    [cp.close() for cp in client_out]
+else:
+    parser.error("Incorrect arguments, please run with --help")
 

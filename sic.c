@@ -1,7 +1,6 @@
 #include "sic.h"
 #include "sic-internals.h"
 
-
 pthread_t network_loop;
 
 void sic_barrier(uint32_t id) {
