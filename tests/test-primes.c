@@ -8,7 +8,7 @@
 int main() {
   sic_init();
   char *primes = sic_malloc(SIZE);
-  int max_check = floor(sqrt(SIZE));
+  int max_check = floor(sqrt(SIZE)) + 1;
   int length = max_check / sic_num_clients();
   int begin = length * sic_id();
   if (begin == 0) {
@@ -19,13 +19,14 @@ int main() {
   sic_barrier(0);
   int i, j;
   for (i = begin; i < end ; i++) {
-    for (j = i; j < SIZE; j = j + i) {
+    printf("Checking multiples of %d\n", i);
+    for (j = i+i; j < SIZE; j = j + i) {
       primes[j] = 1;
     }
   }
   sic_barrier(1);
 
-  for (i = 0; i < 100; i++) {
+  for (i = 0; i < SIZE; i++) {
     printf("%d: %d\n", i, primes[i]);
   }
   sic_exit();
