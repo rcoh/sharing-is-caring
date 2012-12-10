@@ -17,7 +17,7 @@ SERVER_OBJECTS = $(patsubst %.c,%.o,$(SERVER_SOURCES))
 # What we're building with
 CC = gcc
 CFLAGS = -Wall
-LDFLAGS = -lpthread -lprotobuf-c -lcrypt
+LDFLAGS = -lpthread -lprotobuf-c -lcrypt -lm
 
 ifeq ($(DEBUG),1)
 # We want debug mode.
