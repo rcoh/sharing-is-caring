@@ -14,6 +14,5 @@ void connect_to_server();
 
 // Client methods
 int open_socket(const char* ip, int port);
-int send_packet(const char* ip, int port, const uint8_t* msg, int len, uint8_t* rec);
 int send_message(const char* ip, int port, const uint8_t* msg, int len, uint8_t* rec);
 int recv_data(int socket, uint8_t* rec, int len);

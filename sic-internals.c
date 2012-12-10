@@ -134,7 +134,7 @@ void wait_for_server() {
   sic_client_id = 0;
   uint8_t msg[MSGMAX_SIZE], resp[MSGMAX_SIZE];
   int len = encode_message(msg, -1, CLIENT_INIT, 0);
-  send_packet(SERVER_IP, SERVER_PORT, msg, len, resp);
+  send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   int sid, scode;
   value_t svalue;
   decode_message(resp, &sid, &scode, &svalue);
@@ -162,7 +162,7 @@ void *runclient(void * args) {
 
     // Receive the message from the server
     memset(buffer, 0, sizeof(buffer));
-    recv_data(connect_d, buffer, 255);
+    recv_data(connect_d, buffer, MSGMAX_SIZE);
 
     // Process the message
     decode_message(buffer, &sid, &scode, &svalue);

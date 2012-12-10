@@ -73,13 +73,14 @@ int encode_message(uint8_t* msg, int id, int code, value_t value) {
 }
 
 int encode_transmission(uint8_t *buf, Transmission *trans) {
-  buf += 4;
+  buf += sizeof(size_t);
   sic_debug("Encoded size: %u", transmission__get_packed_size(trans));
   int len = transmission__pack(trans, buf);
   buf[len] = '\0';
-  buf -= 4;
-  *buf = len;
-  return len + 4;
+  buf -= sizeof(size_t);
+  size_t* sz = (size_t*) buf;
+  *sz = len;
+  return len + sizeof(size_t);
 }
 
 int decode_message(uint8_t* msg, int* id, int* code, value_t* value) {
@@ -93,8 +94,8 @@ int decode_message(uint8_t* msg, int* id, int* code, value_t* value) {
 }
 
 Transmission* decode_transmission(uint8_t *msg) {
-  int len = (size_t) *msg;
-  msg += 4;
+  int len = *((size_t*)msg);
+  msg += sizeof(size_t);
   Transmission *trans;
   // Unpack the message using protobuf-c.
   sic_debug("Trying to decode a message of length %d", len);

@@ -70,17 +70,6 @@ int send_message(const char* ip, int port, const uint8_t* msg, int len, uint8_t*
   return result;
 }
 
-int send_packet(const char* ip, int port, const uint8_t* msg, int len, uint8_t* rec) {
-  int socket = open_socket(ip, port);
-  sic_debug("Trying to send [%s] to [%s] on port [%d]\n", msg, ip, port);
-  int result = send(socket, msg, len + 1, 0);
-  if (result < 0)
-    fprintf(stderr, "Could not send packet, well fuck\n");
-  result = recv_data(socket, rec, MSGMAX_SIZE);
-  close(socket);
-  return result;
-}
-
 void connect_to_server() {
   // TODO: jlynch
 }

@@ -38,7 +38,7 @@ void * runserver(void * args) {
     int connect_d = accept(listener_d, (struct sockaddr*) &client_addr, &address_size);
     // Recieve the message from the client
     memset(buffer, 0, sizeof(buffer));
-    recv_data(connect_d, buffer, 255);
+    recv_data(connect_d, buffer, MSGMAX_SIZE);
 
     // Process the message
     decode_message(buffer, &sid, &scode, &svalue);
@@ -227,7 +227,7 @@ void signal_client(client_id id, message_t code, int value, message_t expected_a
 int send_message_to_client(client_id id, uint8_t *msg, int len, message_t expected_ack) {
   int cid, ccode;
   value_t cvalue;
-  uint8_t resp[256];
+  uint8_t resp[MSGMAX_SIZE];
   memset(resp, 0, sizeof(resp));
 
   sic_debug("Sending message to %s on port %d\n", clients[id].host, clients[id].port);
