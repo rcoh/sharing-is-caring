@@ -4,7 +4,7 @@
 #include "../sic.h"
 #include <crypt.h>
 
-#define SIZE 4096
+#define SIZE 512
 
 void fill(char *arr, int len) {
   int i;
