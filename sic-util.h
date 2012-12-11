@@ -103,7 +103,7 @@ static const char * const message_names[] = {
 #define SERVER_PORT 1337
 #define CLIENT_BASE_PORT 1338
 
-#define SHARED_SIZE (1 << 26)
+#define SHARED_SIZE (1 << 27)
 
 #define ERROR_ALL 99
 // Error Codes 
