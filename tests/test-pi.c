@@ -3,7 +3,7 @@
 #include <math.h>
 
 const float cir_cent = .5;
-long npoints = 100000000;
+long npoints = 500000000;
 float rand_float() {
   return (float)rand() / RAND_MAX;
 }
@@ -20,7 +20,7 @@ int main() {
   sic_init();
   int *circle_count = sic_malloc(sic_num_clients() * sizeof(int));
   int num_to_run = npoints / sic_num_clients();
-  printf("Num clients: %d", sic_num_clients());
+  printf("Num clients: %d\n", sic_num_clients());
 
   int i;
   srand(0x828);
@@ -40,7 +40,7 @@ int main() {
     for (i = 0; i < sic_num_clients(); i++) {
       total_circle_count += circle_count[i];
     }
-    printf("PI is: %f", 4 * total_circle_count / (float)npoints);
+    printf("\nPI is: %f\n", 4 * total_circle_count / (float)npoints);
   }
   sic_exit();
   return 0;

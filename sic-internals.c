@@ -84,7 +84,7 @@ value_t query_server(message_t code, value_t value) {
   int sid, scode;
   value_t svalue;
   uint8_t resp[MSGMAX_SIZE];
-  sic_debug("Sending query to the signals to the server");
+  sic_debug("Sending query to the server");
   send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
   sic_debug("Got response code from server: %s", get_message(scode));
@@ -95,7 +95,7 @@ int send_message_to_server(uint8_t *msg, int len, message_t expected_ack) {
   int sid, scode;
   value_t svalue;
   uint8_t resp[MSGMAX_SIZE];
-  sic_debug("Sending message the signals to the server");
+  sic_debug("Sending message to the server");
   send_message(SERVER_IP, SERVER_PORT, msg, len, resp);
   decode_message(resp, &sid, &scode, &svalue);
   sic_debug("Got response code from server: %s", get_message(scode));
@@ -121,14 +121,17 @@ void arrived_at_barrier(barrier_id id) {
 
 void sync_pages(int n_diffinfo, RegionDiffProto** diff_info) {
   int i;
+  phys_addr paddr;
   for (i = 0; i < n_diffinfo; i++) {
+    paddr = PHYS((virt_addr)(intptr_t)diff_info[i]->start_address);
     RegionDiff new_diff;
     from_proto(&new_diff, diff_info[i]);
     sic_debug("Applying diff to PA[0x%x] which is VA[0x%x]",
-              PHYS((virt_addr)(intptr_t)diff_info[i]->start_address),
+              paddr,
               (virt_addr)(intptr_t)diff_info[i]->start_address);
     print_diff(new_diff);
-    apply_diff(PHYS((virt_addr)(intptr_t)diff_info[i]->start_address), new_diff, false);
+    apply_diff(paddr, new_diff, false, true);
+    mark_read_only(paddr, PGSIZE); 
   }
 }
 
@@ -207,15 +210,18 @@ int dispatch(uint8_t* return_msg, Transmission* transmission) {
 
 static void handler(int sig, siginfo_t *si, void *unused) {
   int r;
+  if(si->si_addr < shared_base || si->si_addr > (shared_base + SHARED_SIZE)) {
+    sic_debug("Segfault @ %p", si->si_addr);
+    sic_panic("Segmentation fault in application");
+  }
   sic_debug("Got SIGSEGV at address: 0x%lx",(long) si->si_addr);
-  sic_debug("Marking it writeable");
   void * failing_page = ROUNDDOWN(si->si_addr, PGSIZE);
+  sic_debug("Marking [%x] writeable", failing_page);
   if((r = mprotect(failing_page, PGSIZE, PROT_READ | PROT_WRITE)) < 0) {
     sic_debug("[ERROR mprotect failed! %s", strerror(errno));
   }
-  sic_debug("Zeroing page @[0x%x]", failing_page);
-  memset(failing_page, 0, PGSIZE);
-  sic_debug("Registering page");
+  //sic_debug("Zeroing page @[0x%x]", failing_page);
+  //memset(failing_page, 0, PGSIZE);
   register_page(VIRT(failing_page), twin_page(failing_page));
 }
 
@@ -232,6 +238,7 @@ void initialize_memory_manager() {
 }
 
 void mark_read_only(void *start, size_t length) {
+  sic_debug("Marking %p for to %p as RO", start, start+length);
   mprotect(start, length, PROT_READ);
 }
 
@@ -245,6 +252,7 @@ void *twin_page(void *va) {
 void register_page(virt_addr realva, phys_addr twinnedva) {
   if (invalid_pages == NULL) {
     invalid_pages = (PageInfo *)malloc(sizeof(PageInfo));
+    invalid_pages->next = NULL;
   } else {
     PageInfo *new = (PageInfo *)malloc(sizeof(PageInfo));
     new->next = invalid_pages;
@@ -254,8 +262,7 @@ void register_page(virt_addr realva, phys_addr twinnedva) {
   invalid_pages->twinned_page_addr = twinnedva;
   invalid_pages->diff.num_diffs = -1;
 
-  invalid_pages->next = NULL;
-  sic_debug("Registered %p cloned at %p", realva, twinnedva);
+  sic_debug("Registered [0x%x] cloned at [0x%x]", realva, twinnedva);
 }
 
 /*
@@ -270,12 +277,12 @@ int diff_and_cleanup(uint8_t *msg, client_id client, int code, value_t value) {
   while(w) {
     w->diff = diff_for_page(w);
     free(w->twinned_page_addr);
-    mark_read_only(w->real_page_addr, PGSIZE);
+    mark_read_only(PHYS(w->real_page_addr), PGSIZE);
     w = w->next;
     num_pages++;
   }
   print_memstat(invalid_pages);
-  sic_debug("Packaging current diff to send to server");
+  sic_debug("Packaging current diff to send to server, should have %d pages", num_pages);
   int ret = package_pageinfo(msg, client, code, value, invalid_pages);
   invalid_pages = NULL;
   return ret;

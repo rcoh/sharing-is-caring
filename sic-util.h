@@ -13,7 +13,7 @@
 
 
 #define PGSIZE 4096
-#define MSGMAX_SIZE 24000
+#define MSGMAX_SIZE 131072
 // Rounding operations (efficient when n is a power of 2)
 // Round down to the nearest multiple of n
 #define ROUNDDOWN(a, n)           \
@@ -147,7 +147,7 @@ void to_proto(RegionDiff r, RegionDiffProto *rp);
 
 RegionDiff memdiff(void *old, void *new, size_t length);
 
-void apply_diff(void *va, RegionDiff diff, bool use_or);
+void apply_diff(void *va, RegionDiff diff, bool use_or, bool allow_writes);
 
 RegionDiff merge_diffs(RegionDiff r1, RegionDiff r2); 
 PageInfo* merge_multipage_diff(PageInfo *current, int n_diffinfo, RegionDiffProto **diff_info);

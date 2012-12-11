@@ -11,7 +11,7 @@ const int current_level = DEBUG;
 
 void sic_panic(char * msg) {
   fprintf(stderr, "%s: %s\n", msg, strerror(errno));
-  fprintf(stderr, "--------------PANCIC EXITING------------");
+  fprintf(stderr, "--------------PANIC EXITING------------");
   exit(1);
 }
 
@@ -135,7 +135,7 @@ RegionDiff memdiff(void *old, void *new, size_t length) {
 
   // Shrink it to what we actually need
   diffs = (DiffSegment *)realloc((void *)diffs, num_diffs * sizeof(DiffSegment));
-  sic_debug("realloced: %p\n", diffs);
+  sic_debug("realloced: %p", diffs);
   
   RegionDiff r;
   r.diffs = diffs;
@@ -143,11 +143,11 @@ RegionDiff memdiff(void *old, void *new, size_t length) {
   return r;
 }
 
-void apply_diff(void *page_addr, RegionDiff diff, bool use_or) {
+void apply_diff(void *page_addr, RegionDiff diff, bool use_or, bool allow_writes) {
   DiffGranularity *w = (DiffGranularity*)page_addr;
   int i, r;
   void *failing_page = NULL;
-  if(!use_or) {
+  if(allow_writes) {
     void *failing_page = ROUNDDOWN(page_addr, PGSIZE);
     if((r = mprotect(failing_page, PGSIZE, PROT_READ | PROT_WRITE)) < 0) {
       sic_debug("[ERROR mprotect failed! %s", strerror(errno));
@@ -163,7 +163,7 @@ void apply_diff(void *page_addr, RegionDiff diff, bool use_or) {
     }
     w++;
   }
-  if(!use_or) 
+  if(allow_writes) 
     mprotect(failing_page, PGSIZE, PROT_READ);
 }
 
@@ -173,7 +173,7 @@ RegionDiff merge_multiple_diffs(int num_diffs, RegionDiff *r) {
   memset(new_page, 0, PGSIZE);
   int i;
   for (i = 0; i < num_diffs; i++) {
-    apply_diff(new_page, r[i], true);
+    apply_diff(new_page, r[i], true, false);
   }
 
   // TODO: this is inefficient...
@@ -190,8 +190,8 @@ RegionDiff merge_diffs(RegionDiff r1, RegionDiff r2) {
   // TODO: probably shouldn't hardcode PGSIZE here
   void *new_page = malloc(PGSIZE);
   memset(new_page, 0, PGSIZE);
-  apply_diff(new_page, r1, true);
-  apply_diff(new_page, r2, true);
+  apply_diff(new_page, r1, true, false);
+  apply_diff(new_page, r2, true, false);
 
   // TODO: this is inefficient...
   void *zero_page = malloc(PGSIZE);
@@ -277,7 +277,7 @@ int package_pageinfo(uint8_t *msg,
     RegionDiffProto tmp = REGION_DIFF_PROTO__INIT;
     *r = tmp;
     to_proto(w->diff, r);
-    r->start_address = (int64_t) (intptr_t) w->real_page_addr;
+    r->start_address = (int64_t) (uintptr_t) w->real_page_addr;
     // We're done with the region diff
     pages[i] = r;
     w = w->next;

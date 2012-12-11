@@ -3,7 +3,7 @@
 #include <math.h>
 #include "../sic.h"
 
-#define SIZE 2000000
+#define SIZE 20000
 
 bool is_prime(int num) {
   int max_check = floor(sqrt(num)) + 1;
@@ -17,7 +17,10 @@ bool is_prime(int num) {
 
 int main() {
   sic_init();
+  int i, j;
   char *primes = sic_malloc(SIZE);
+  sic_barrier(0);
+
   int max_check = floor(sqrt(SIZE)) + 1;
   int length = max_check / sic_num_clients();
   int begin = length * sic_id();
@@ -26,31 +29,32 @@ int main() {
   }
   int end = length * (sic_id()+1);
 
-  sic_barrier(0);
-  int i, j;
+  int num_computed = 3;
   for (i = begin; i < end ; i++) {
     for (j = i+i; j < SIZE; j = j + i) {
       primes[j] = 1;
     }
+    num_computed++;
+    if(num_computed > 13) {
+      num_computed = 0;
+      sic_barrier(num_computed);
+    }
   }
   sic_barrier(1);
 
-  bool has_error = false;
+  int num_error = 0;
   // Primes should have a 0 for primes and 1's for composite
   for (i = 0; i < SIZE; i++) {
     if(is_prime(i) && (primes[i] != 0)) {
-      printf("ERROR: got %i wrong. Primes has %d but value is prime.\n", i, primes[i]);
-      has_error = true;
+      num_error++;
     } else if (!is_prime(i) && (primes[i] == 0)) {
-      printf("ERROR: got %i wrong. Primes has %d but value is not prime\n", i, primes[i]);
-      has_error = true;
-    } else {
-      if (sic_id() == 0)
-        printf("CORRECT: got %i correct\n", i);
+      num_error++;
     }
   }
-  if(!has_error) {
-    printf("No errors primes all correct!\n");
+  if(num_error == 0) {
+    printf("[SUCCESS] No errors primes all correct!\n");
+  } else {
+    printf("[ERROR] %d Prime computaiton errors!\n", num_error);
   }
   sic_exit();
   return 0;

@@ -4,7 +4,7 @@
 #include "../sic.h"
 #include <crypt.h>
 
-#define SIZE 512
+#define SIZE 64
 
 void fill(char *arr, int len) {
   int i;
@@ -62,6 +62,7 @@ int main() {
   char **hashes = sic_malloc(SIZE*sizeof(char*));
   for (i = 0; i < SIZE; i++) {
     tmp = sic_malloc(34);
+    memset(tmp, 0, 34);
     hashes[i] = tmp;
   }
   char **seeds = malloc(SIZE*sizeof(char*));
@@ -74,15 +75,15 @@ int main() {
   sic_barrier(0);
   int times_through = 2;
   for (i = begin; i < end ; i++) {
+      fprintf(stderr, "%p WOOT MOTAFUCKA\n", &hashes[i]);
       complex_computation(hashes[i], seeds[i]);
       times_through++;
-      /*if(times_through >= 20) {
+  /*    if(times_through >= 20) {
         sic_barrier(times_through);
         times_through = 2;
       }*/
   }
   sic_barrier(1);
-
   for (i = 0; i < SIZE; i++) {
     printf("%d @ PA[0x%p]: %s -> %s \n", i, &hashes[i], seeds[i], hashes[i]);
   }
