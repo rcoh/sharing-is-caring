@@ -27,21 +27,21 @@ void sic_lock(lock_id lock) {
     break;
   }
   sic_debug("[CLIENT] %d acquired lock %d", sic_id(), lock);
+  sync_pages(tran->n_diff_info, tran->diff_info);
   free(tran);
 }
 
 void sic_unlock(lock_id id) {
- int code = signal_server(CLIENT_RELEASE_LOCK, id, NO_ACK);
- if (code == SERVER_LOCK_NOT_RELEASED) {
-   sic_debug("[CLIENT] Could not release lock %d because %d never acquired it", id, sic_id());
- } else {
-   uint8_t msg[MSGMAX_SIZE];
-   memset(msg, 0, MSGMAX_SIZE);
-   int len = diff_and_cleanup(msg, sic_id(), CLIENT_LOCK_DIFF, id);
-   sic_debug("[CLIENT] Sent diff to server for lock %d", id);
-   send_message_to_server(msg, len, NO_ACK);
-   sic_debug("[CLIENT] Released lock %d held by %d", id, sic_id());
- }
+  uint8_t msg[MSGMAX_SIZE];
+  memset(msg, 0, MSGMAX_SIZE);
+  int len = diff_and_cleanup(msg, sic_id(), CLIENT_LOCK_DIFF, id);
+  sic_debug("[CLIENT] Sent diff to server for lock %d", id);
+  int code = send_message_to_server(msg, len, NO_ACK);
+  if (code == SERVER_LOCK_NOT_RELEASED) {
+    sic_debug("[CLIENT] Could not release lock %d because %d never acquired it", id, sic_id());
+  } else {
+    sic_debug("[CLIENT] Released lock %d held by %d", id, sic_id());
+  }
 }
 
 /** 

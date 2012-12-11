@@ -96,7 +96,7 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *
     case CLIENT_REQUEST_LOCK:
       sic_info("Server attempting to acquire lock %d for %d", value, id);
       rcode = client_requests_lock(id, value);
-      return encode_message(return_msg, -1, rcode, value);
+      return package_pageinfo(return_msg, -1, rcode, value, locks[value].invalid_pages);
     case CLIENT_RELEASE_LOCK:
       sic_info("Server attempting to release lock %d for %d", value, id);
       rcode = client_frees_lock(id, value);
@@ -118,6 +118,7 @@ int server_dispatch(uint8_t * return_msg, const char * client_ip, Transmission *
     case CLIENT_LOCK_DIFF:
       sic_info("Client %d sending diff for lock %d", id, value);
       client_arrived_at_lock(id, value, transmission->n_diff_info, transmission->diff_info);
+      rcode = client_frees_lock(id, value);
       return encode_message(return_msg, -1, NO_ACK, value);
     default:
       sic_info("Can't handle %s\n", get_message(code));
