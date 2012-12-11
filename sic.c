@@ -3,18 +3,29 @@
 
 pthread_t network_loop;
 
+/** Barrier at the given barrier id until all calling
+ * processes arrive
+ **/
 void sic_barrier(uint32_t id) {
   arrived_at_barrier(id);
 }
 
+/** Initialize the client's memory mapping and request
+ * an id from the master server. Once we are ready, spin
+ * up a thread that will process messages from the server.
+ */
 void sic_init() {
-  // Initiaizes all the things
   initialize_client();
-
-  // Fire off a thread that listens for messages from the server
   pthread_create(&network_loop, NULL, runclient, NULL);
 }
 
+/** Spin locks by passing requests to the master for
+ * the provided lock id until the master tells this
+ * client that it is safe to proceed.
+ *
+ * NOTE: This will change the memory mapping based on
+ * what the previous processor stored on the master.
+ */
 void sic_lock(lock_id lock) {
   Transmission * tran;
   while(1) {
@@ -31,6 +42,9 @@ void sic_lock(lock_id lock) {
   free(tran);
 }
 
+/** Sends a request to release the provided lock id
+ * passing along the current memory diff along with it
+ */
 void sic_unlock(lock_id id) {
   uint8_t msg[MSGMAX_SIZE];
   memset(msg, 0, MSGMAX_SIZE);
@@ -59,7 +73,7 @@ void *sic_malloc(size_t size) {
   // TODO: reserved barrier numbers
   arrived_at_barrier(100);
   if (sic_id() != 0) {
-    // Everyone request shared address of last allocation.
+    // All clients who are not id=0 request shared address of last allocation.
     virt_addr malloc_region = (virt_addr)(intptr_t) query_server(CLIENT_REQUEST_LAST_ADDR, -1);
     addr = PHYS(malloc_region);
   }
@@ -74,6 +88,9 @@ void sic_exit() {
   pthread_detach(network_loop);
 }
 
+/** Returns the number of clients (workerrs) the server is expecting before
+ * it will release workers from barriers
+ */
 int sic_num_clients() {
   return query_server(CLIENT_REQUEST_NUM_CLIENTS, sic_id());
 }
