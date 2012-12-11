@@ -10,7 +10,7 @@
 #define NUM_BARRIERS 1000
 #define NUM_LOCKS    1000
 #define MAX_CLIENTS  100
-#define NUM_CLIENTS  2
+#define NUM_CLIENTS  3
 
 typedef struct {
   barrier_id id;

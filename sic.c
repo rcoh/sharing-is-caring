@@ -45,26 +45,26 @@ void sic_unlock(lock_id id) {
 }
 
 /** 
-  Only id = 0 will actually perform a malloc. All parties will hit a barrier
-  the virtual address malloced will be coordinated through the server.
+  Only id = 0 will actually perform a malloc. All parties will hit a barrier.
+  The virtual address malloced will be coordinated through the server.
 */
 void *sic_malloc(size_t size) {
   phys_addr addr = 0;
   if (sic_id() == 0) {
     addr = alloc(size);
-    signal_server(CLIENT_MALLOC_ADDR, (uintptr_t)VIRT(addr), ACK_ADDRESS_RECIEVED);
     // send virt address to server  
+    signal_server(CLIENT_MALLOC_ADDR, (uintptr_t)VIRT(addr), ACK_ADDRESS_RECIEVED);
   }
   // Everyone hits a barrier
   // TODO: reserved barrier numbers
   arrived_at_barrier(100);
   if (sic_id() != 0) {
+    // Everyone request shared address of last allocation.
     virt_addr malloc_region = (virt_addr)(intptr_t) query_server(CLIENT_REQUEST_LAST_ADDR, -1);
     addr = PHYS(malloc_region);
   }
   assert(addr);
   sic_info("Malloc returned VA %p for PA %p", VIRT(addr), addr);
-  // Everyone request shared address of last allocation.
   return addr;
 }
 
@@ -77,5 +77,4 @@ void sic_exit() {
 int sic_num_clients() {
   return query_server(CLIENT_REQUEST_NUM_CLIENTS, sic_id());
 }
-
 

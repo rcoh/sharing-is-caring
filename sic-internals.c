@@ -49,7 +49,8 @@ void cleanup_client() {
   signal_server(CLIENT_EXIT, sic_id(), ACK_CLIENT_EXIT);
 }
 
-// Currently a very stupid alloc ...
+// Currently a very stupid alloc. It allocates in the stack allocation style and
+// /cannot/ free. However, shared memory programs rarely free memory anyway.
 phys_addr alloc(size_t len) {
   void * ret = next_free;
   if ((next_free + len) - shared_base > SHARED_SIZE)
@@ -59,7 +60,6 @@ phys_addr alloc(size_t len) {
   return ret;
 }
 
-/** Synchronization **/
 
 int signal_server(message_t code, value_t value, message_t expected_ack) {
   uint8_t msg[MSGMAX_SIZE];
@@ -108,17 +108,19 @@ void arrived_at_barrier(barrier_id id) {
   blocked = true;
   sic_debug("[CLIENT] %d hitting barrier: %d", sic_id(), id);
 
-  // Compute memory diff to send
   uint8_t msg[MSGMAX_SIZE];
   memset(msg, 0, MSGMAX_SIZE);
+  // Compute memory diff to send
   int len = diff_and_cleanup(msg, sic_id(), CLIENT_AT_BARRIER, id);
   send_message_to_server(msg, len, ACK_CLIENT_AT_BARRIER);
-  //signal_server(CLIENT_AT_BARRIER, id, ACK_CLIENT_AT_BARRIER);
+
+  // Loop until the server frees us from the barrier
   while(blocked) {
     sched_yield();
   }
 }
 
+// Apply a Diff object to our current set of pages
 void sync_pages(int n_diffinfo, RegionDiffProto** diff_info) {
   int i;
   phys_addr paddr;
@@ -136,7 +138,7 @@ void sync_pages(int n_diffinfo, RegionDiffProto** diff_info) {
 }
 
 void released_from_barrier(barrier_id id, int n_diffinfo, RegionDiffProto** diff_info) {
-  assert(!blocked);
+  assert(blocked);
   sync_pages(n_diffinfo, diff_info);
   sic_debug("[CLIENT] %d released from barrier %d",sic_id(), id);
   blocked = false;

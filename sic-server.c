@@ -181,7 +181,7 @@ int client_arrived_at_barrier(client_id client, barrier_id barrier,
   b->invalid_pages = merge_multipage_diff(b->invalid_pages, n_diffinfo, diff_info);
   if (b->id == 0) {
     b->id = barrier;
-    assert_empty_barrier(*b);
+    //assert_empty_barrier(*b);
   }
 
   if (b->clients_arrived[client] == false) {

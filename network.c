@@ -36,7 +36,6 @@ int recv_data(int socket, uint8_t* rec, int len) {
   int total_bytes_recv = 0;
   int last_bytes_recv = recv(socket, rec, len, 0);
   total_bytes_recv += last_bytes_recv;
-  //char * repr;
   while (total_bytes_recv < len && last_bytes_recv != 0) {
     sic_debug("recv: %d bytes / %d possible", total_bytes_recv, len);
     if (last_bytes_recv < 0) {
@@ -70,8 +69,4 @@ int send_message(const char* ip, int port, const uint8_t* msg, int len, uint8_t*
   sic_debug("Received response. %d bytes", result);
   close(socket);
   return result;
-}
-
-void connect_to_server() {
-  // TODO: jlynch
 }
